@@ -24,17 +24,17 @@ function Input(host)
     this.id = "mdInput";
     this.title = "Input File or Example";
 
-    this.requestTimeout = 60000; // what is the timeout for response after sending a file
-    this.pollingTimeout = 60000;  // what is the timeout when polling
-    this.pollingDelay = 2000;    // how often to send requests (poll) for updates
+    this.requestTimeout = 60000; // what is the timeout for response after sending a file, &line timeout
+    this.pollingTimeout = 60000;  // what is the timeout when polling, &line [polling, timeout]
+    this.pollingDelay = 2000;    // how often to send requests (poll) for updates, &line polling
 
     this.width = 500;
     this.height = 88;
     this.posx = 0;
     this.posy = 0;
     
-    this.pollingTimeoutObject = null;
-    this.toCancel = false;
+    this.pollingTimeoutObject = null;//&line [polling, timeout]
+    this.toCancel = false;//&line cancellation
     
     this.host = host;
     this.serverAction = "/upload";
@@ -52,45 +52,44 @@ Input.method("onInitRendered", function()
     this.optimizeFlag = 1;
     this.addInstancesFlag = 1;
     this.previousData = null;
-    this.toCancel = false;
+    this.toCancel = false;//&line cancellation
 
-    $("#submitFile").click(this.submitFileCall.bind(this));
-    $("#submitExample").click(this.submitExampleCall.bind(this));
+    $("#submitFile").click(this.submitFileCall.bind(this));//&line selectionOfExamples
+    $("#submitExample").click(this.submitExampleCall.bind(this));//&line selectionOfExamples
     
-    $("#submitExample").attr("disabled", "disabled");
-    $("#submitFile").attr("disabled", "disabled");
+    $("#submitExample").attr("disabled", "disabled");//&line selectionOfExamples
+    $("#submitFile").attr("disabled", "disabled");//&line selectionOfExamples
     
     $("#myform [type='file']").change(this.inputChange.bind(this));
     $("#exampleURL").change(this.exampleChange.bind(this));
     
     var options = new Object();
     options.beforeSubmit = this.beginQuery.bind(this);
-    options.success = this.fileSent.bind(this);
-    options.error = this.handleError.bind(this);
-    options.timeout = this.requestTimeout;
+    options.success = this.fileSent.bind(this);//&line polling
+    options.error = this.handleError.bind(this);//&line handleError
+    options.timeout = this.requestTimeout;// &line timeout
 
     $('#myform').ajaxForm(options); 
 //	$('#myform').submit(); moved submit out of here, because the backend list is not loaded yet
 });
-
 /*
  * Cancel request
  */
-
+//$begin cancellation
 Input.method("cancelCall", function() 
 {
     $("#cancel").hide();
     $("#status_label").html("Cancelling...");
     this.toCancel = true;
 });
- 
+//$end cancellation
 /*
  * Shows uploader and hides the form
 */
 Input.method("beginQuery", function(formData, jqForm, options) {
 	$("#load_area #myform").hide();
 	$("#load_area").append('<div id="preloader"><img id="preloader_img" src="/images/preloader.gif" alt="Loading..."/><span id="status_label">Loading and processing...</span><button id="cancel">Cancel</button></div>');	
-    $("#cancel").click(this.cancelCall.bind(this));
+    $("#cancel").click(this.cancelCall.bind(this));//&line cancellation
     return true; 
 });
 
@@ -110,16 +109,17 @@ Input.method("showRequest", function(formData, jqForm, options) {
 });
 */
 
+//&begin polling
 Input.method("onPoll", function(responseObject)
 {
     if (responseObject.message === "Working")
     {
-        this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
-    }
+        this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);//&line timeout
+    }//&begin cancellation
     else if (responseObject.message === "Cancelled")
     {
         this.endQuery();
-    }
+    }//&end cancellation
     else
     {
         this.processToolResult(responseObject);
@@ -132,24 +132,24 @@ Input.method("poll", function()
     var options = new Object();
     options.url = "/poll";
     options.type = "post";
-    options.timeout = this.pollingTimeout;
+    options.timeout = this.pollingTimeout;//&line timeout
     if (!this.toCancel)
         options.data = {windowKey: this.host.key, command: "ping"};
     else
-        options.data = {windowKey: this.host.key, command: "cancel"};
+        options.data = {windowKey: this.host.key, command: "cancel"};//&line cancellation
     
     options.success = this.onPoll.bind(this);
     options.error = this.handleError.bind(this);
     
     $.ajax(options);
 });
-
+//&begin claferModel
 Input.method("setClaferModelHTML", function(html){
     this.host.findModule("mdClaferModel").model = html;
     var iframe = $("#model")[0];
     iframe.src = iframe.src; // reloads the window
 });
-
+//&end claferModel
 Input.method("fileSent", function(responseText, statusText, xhr, $form)  { 
     this.toCancel = false;
 
@@ -164,14 +164,15 @@ Input.method("fileSent", function(responseText, statusText, xhr, $form)  {
     {
         if (responseText != "OK")
         {
-            this.setClaferModelHTML(responseText);
+            this.setClaferModelHTML(responseText);//&line claferModel
         }
         this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
     }
     else
         this.endQuery();
 });
-
+//&end polling
+	//&begin [handleError]
 Input.method("handleError", function(response, statusText, xhr)  { 
 	clearTimeout(this.pollingTimeoutObject);
 	var er = document.getElementById("error_overlay");
@@ -180,8 +181,8 @@ Input.method("handleError", function(response, statusText, xhr)  {
 
     if (statusText == "compile_error")
         caption = "<b>Compile Error.</b><br>Please check whether Clafer Compiler is available, and the model is correct.";
-    else if (statusText == "timeout")
-        caption = "<b>Request Timeout.</b><br>Please check whether the server is available.";
+    else if (statusText == "timeout")//&line timeout
+        caption = "<b>Request Timeout.</b><br>Please check whether the server is available.";//&line timeout
     else if (statusText == "malformed_output")
         caption = "<b>Malformed output received from ClaferMoo.</b><br>Please check whether you are using the correct version of ClaferMoo. Also, an unhandled exception is possible.  Please verify your input file: check syntax and integer ranges.";        
     else if (statusText == "malformed_instance")
@@ -206,7 +207,7 @@ Input.method("handleError", function(response, statusText, xhr)  {
 	this.endQuery();
     
 });
-
+//&end [handleError]
 Input.method("convertHtmlTags", function(input) {
   var in_tag=false;
   var in_var=false;
@@ -255,7 +256,7 @@ Input.method("convertHtmlTags", function(input) {
 
   return output;
 });
-
+//&begin selectionOfExamples
 Input.method("submitFileCall", function(){
 
     $("#exampleURL").val(null);
@@ -284,7 +285,6 @@ Input.method("submitExampleCall", function(){
     
     host.findModule("mdComparisonTable").permaHidden = {};
 });
-
 Input.method("exampleChange", function(){
     if ($("#exampleURL").val())
     {
@@ -295,7 +295,7 @@ Input.method("exampleChange", function(){
  		$("#submitExample").attr("disabled", "disabled");       
     }
 });
-
+//&end selectionOfExamples
 Input.method("inputChange", function(){
 	var filename = $("#myform [type='file']").val();
     
@@ -323,15 +323,15 @@ Input.method("inputChange", function(){
     }
     
 });
-
+//&begin [instanceProcessing]
 Input.method("processToolResult", function(result)
-{
+{//&begin handleError
 	if (!result)
     {
         this.handleError(null, "empty_argument", null);
         return;
     }
-    
+	//&end handleError
 //    var resultData = JSON.parse(result);
     
 //    resultData.message = unescapeJSON(resultData.message);
@@ -339,18 +339,19 @@ Input.method("processToolResult", function(result)
 //    resultData.claferXML = resultData.claferXML;
 //    resultData.instances = resultData.instances;
 //    resultData.message = resultData.message;
-    
+	
 	var instances = result.instances;
 	var abstractXMLText = result.claferXML;
 
 	if (this.optimizeFlag){
 		this.optimizeFlag = 0;
     	this.addInstancesFlag = 0;
+	//&begin handleError
     	if (!result.instances)
 		{
             this.handleError(null, "malformed_output", null);
        		return;
-   		}
+   		}//&end handleError
     } else if (this.addInstancesFlag) {
         
 		this.optimizeFlag = 0;
@@ -370,28 +371,28 @@ Input.method("processToolResult", function(result)
             instances += parser.convertFromClaferIGOutputToClaferMoo(this.previousData.abstractXML);            
             abstractXMLText = this.previousData.abstractXML;
         }
-        else
+        else//&begin handleError
 		{
             this.handleError(null, "optimize_first", null);
        		return;
-   		}
+   		}//&end handleError
 	}
 
 	var instancesXMLText = (new InstanceConverter(instances)).convertFromClaferMooOutputToXML();
 
 	instancesXMLText = instancesXMLText.replaceAll('<?xml version="1.0"?>', '');
-
+	//&begin handleError
     if (instancesXMLText.length == 0 || instancesXMLText == "<instances></instances>")
     {
         this.handleError(null, "empty_instances", null);
         return;
-    }
-
+    }//&end handleError
+    //&begin handleError
     if (instancesXMLText.indexOf("<instance></instance>") >= 0)
 	{
         this.handleError(null, "malformed_instance", null);
         return;
-    }
+    }//&end handleError
 
     
 //	abstractXMLText = abstractXMLText.replaceAll("&quot;", "\"");
@@ -421,7 +422,7 @@ Input.method("processToolResult", function(result)
     data.originalPoints = this.originalPoints;
     this.previousData = { Unparsed: instances, abstractXML: data.claferXML };
     this.host.updateData(data);
-});
+});//&end [instanceProcessing]
 
 Input.method("getInitContent", function()
 {
@@ -433,8 +434,9 @@ Input.method("getInitContent", function()
     result += '<input type="hidden" name="exampleFlag" id="exampleFlag" value="0">';
     result += '<input id="submitFile" type="submit" value="Optimize">';
 
-    result += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';
+    result += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';//&line windowKey
     result += '<br>';
+	//&begin selectionOfExamples
     result += '<select id="exampleURL" name="exampleURL" style="width: 388px;">';   
 
     $.getJSON('/Examples/examples.json', 
@@ -466,6 +468,7 @@ Input.method("getInitContent", function()
     
     result += '</select>';
     result += '<input id="submitExample" type="submit" value="Optimize"></input>';
+	//&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
 
     result += '<span>Backend:</span><select id="backend" name="backend" style="width: 288px;">';   
@@ -491,7 +494,7 @@ Input.method("getInitContent", function()
         });
     
     result += '</select>';
-    result += '<input type="checkbox" name="cache" checked="checked"/>Use Cache';   
+    result += '<input type="checkbox" name="cache" checked="checked"/>Use Cache';   //&line cache
     result += '</form></div>';
     
     return result;

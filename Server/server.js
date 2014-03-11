@@ -45,8 +45,9 @@ server.use(express.session({secret: 'supersecretstring', store: store}));
 
 server.use(express.static(__dirname + '/Client'));
 server.use(express.bodyParser({ keepExtensions: true, uploadDir: __dirname + '/uploads' }));
-
+//&begin [urlUploading]
 var URLs = [];
+//&end [urlUploading]
 var processes = [];
 
 server.get('/Examples/:file', function(req, res) {
@@ -73,7 +74,7 @@ server.get('/', function(req, res) {
 server.get('/htmlwrapper', function(req, res) {
     res.sendfile("Client/compiler_html_wrapper.html");
 });
-
+//&begin [saveInstances]
 /*
  * Handle Clientside save requests
  */
@@ -83,7 +84,7 @@ server.post('/', function(req, res, next) {
    						 "Content-Disposition": "attachment; filename=Instances.cfr.data"});
 	res.end(req.body.data);
 });
-
+	//&end [saveInstances]
 /*
  * Handle Polling
  * The client will poll the server to get the latest updates or the final result
@@ -91,7 +92,7 @@ server.post('/', function(req, res, next) {
  * Moreover, this helps to control the execution of ClaferMoo: to stop, or to get intermediate results.
  * An alternative way might be to create a web socket
  */
-
+// &begin [polling]
 server.post('/poll', function(req, res, next)
 {
     var found = true;
@@ -100,7 +101,7 @@ server.post('/poll', function(req, res, next)
         if (processes[i].windowKey == req.body.windowKey)
         {
             if (req.body.command == "ping") // normal ping
-            {                
+            {   //&begin [pingTimeout, timeout]             
                 clearTimeout(processes[i].pingTimeoutObject);
                 processes[i].pingTimeoutObject = setTimeout(function(process){
                     process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
@@ -109,7 +110,7 @@ server.post('/poll', function(req, res, next)
                     process.pingTimeout = true;
                     killProcessTree(process);
                 }, config.pingTimeout, processes[i]);
-                
+                //&end [pingTimeout, timeout]
                 if (processes[i].completed) // the execution is completed
                 {
                     
@@ -123,10 +124,10 @@ server.post('/poll', function(req, res, next)
                     }
 
                     res.end(processes[i].result);
-                    if (processes[i].pingTimeoutObject)
+                    if (processes[i].pingTimeoutObject)//&line [pingTimeout, timeout]
                     {
-                        clearTimeout(processes[i].pingTimeoutObject);
-                        clearTimeout(processes[i].executionTimeoutObject);                    
+                        clearTimeout(processes[i].pingTimeoutObject);//&line [pingTimeout, timeout]
+                        clearTimeout(processes[i].executionTimeoutObject);//&line [executionTimeout, timeout]                    
                     }
                     processes.splice(i, 1);
                     found = true;
@@ -137,44 +138,45 @@ server.post('/poll', function(req, res, next)
                     res.end('{"message": "Working"}');
                     found = true;
                 }
-            }
+            }//&begin cancellation
             else // if it is cancel
             {
                 killProcessTree(processes[i]);
-                clearTimeout(processes[i].pingTimeoutObject);                
-                clearTimeout(processes[i].executionTimeoutObject);
+                clearTimeout(processes[i].pingTimeoutObject);    //&line [pingTimeout, timeout]          
+                clearTimeout(processes[i].executionTimeoutObject);//&line [executionTimeout, timeout] 
                 processes.splice(i, 1);
                 res.writeHead(200, { "Content-Type": "application/json"});
                 res.end('{"message": "Cancelled"}');
                 found = true;
-            }
+            }//&end cancellation
         }
         
     }
-    
+    //&begin [pingTimeout, timeout]
     var i = 0;
     while (i < processes.length)
     {
         if (processes[i].pingTimeout)
         {
             clearTimeout(processes[i].pingTimeoutObject);
-            clearTimeout(processes[i].executionTimeoutObject);                    
+            clearTimeout(processes[i].executionTimeoutObject);    //&line executionTimeout                 
             processes.splice(i, 1);
         }
         else
             i++;
     }
-    
+  //&end [pingTimeout, timeout]
     if (!found)
     {
         res.writeHead(404, { "Content-Type": "text/html"});
         res.end("Error: the requested process is not found.");
     }
-});
+});//&end [polling]
 
 /*
  * Handle file upload
  */
+// &begin fileUpload
 server.post('/upload', function(req, res, next) 
 {
 	console.log("---------------------------");
@@ -182,20 +184,21 @@ server.post('/upload', function(req, res, next)
 
     var key = req.body.windowKey;
     var backendId = req.body.backend;
-    var cacheEnabled = req.body.cache;
+    var cacheEnabled = req.body.cache;//&line cache
     var currentURL = "";
     
     var uploadedFilePath = "";
     
 	//check if client has either a file directly uploaded or a url location of a file
-   	
+	//&begin [urlUploading]
     if (req.body.exampleFlag == "1")
     {
+   	//&begin selectionOfExamples
         if (req.body.exampleURL !== undefined && req.body.exampleURL !== "") // if example submitted
         {
             console.log(req.headers.host);
             currentURL = "http://" + req.headers.host + "/Examples/" + req.body.exampleURL;                
-        }
+        }//&end selectionOfExamples
         else
         {
             console.log("No example submitted. Returning...");
@@ -238,6 +241,7 @@ server.post('/upload', function(req, res, next)
                 res.end("no clafer file submitted");
                 return;
             }
+          //&begin handleEmptyFile
             var pre_content = fs.readFileSync(uploadedFilePath);
             if (pre_content.length == 0)
             {
@@ -245,8 +249,9 @@ server.post('/upload', function(req, res, next)
                 res.writeHead(200, { "Content-Type": "text/html"});
                 res.end("no clafer file submitted");
                 return;
-            }        
+            }      //&end handleEmptyFile  
         }
+      //&end [urlUploading]
 	}
     
 /* downloading the file, if required */ 
@@ -310,6 +315,7 @@ server.post('/upload', function(req, res, next)
                 console.log("Proceeding with " + uploadedFilePath);
                 
                 // read the contents of the uploaded file
+              //&begin [fileProcessing]
                 fs.readFile(uploadedFilePath, function (err, data) {
 
                     var file_contents;
@@ -337,15 +343,15 @@ server.post('/upload', function(req, res, next)
                     }
                     console.log("Processing file with the chosen backend...");
 
-                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, code: 0, killed:false, contents: file_contents};
+                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, code: 0, killed:false, contents: file_contents};//&line polling
 
                     if (uploadedFilePath.substring(uploadedFilePath.length - 5) == ".data")
                     {
                         console.log("Instances have been submitted, returning them...");                
-                        process.result = '{"instances": "' + escapeJSON(file_contents) + '"}';
-                        process.code = 0;
-                        process.completed = true;
-                        processes.push(process);                    
+                        process.result = '{"instances": "' + escapeJSON(file_contents) + '"}';//&line polling
+                        process.code = 0;//&line polling
+                        process.completed = true;//&line polling
+                        processes.push(process);             //&line polling       
                         cleanupOldFiles(uploadedFilePath, dlDir);
                         res.writeHead(200, { "Content-Type": "text/html"});
                         res.end("OK"); // just means the file has been sent sucessfully and started to processing
@@ -372,14 +378,14 @@ server.post('/upload', function(req, res, next)
                                     res.end("error");
                                     return;
                                 }
-                                
+                              //&begin cache
                                 var cacheFound = false;
                                 
                                 var cache_folder = __dirname + "/cache/";
                                 var hash = crypto.createHash('md5').update(process.contents).digest("hex");
                                 var cache_file_name = cache_folder + hash + "_" + backendId + ".json";
                                 console.log("Cache file name: " + cache_file_name);
-
+                                
                                 if (cacheEnabled)
                                 {
                                     console.log("Checking Cache...");
@@ -401,8 +407,8 @@ server.post('/upload', function(req, res, next)
                                         console.log("Cached result no found.");
                                     }
                                 }
-                                
-                                if (!cacheFound)
+                                //&end cache
+                                if (!cacheFound)//&line cache
                                 {
                                     try
                                     {
@@ -431,8 +437,8 @@ server.post('/upload', function(req, res, next)
                                     
                                         var filtered_args = filterArgs(backend.args, __dirname + "/Backends", uploadedFilePath);                            
                                         var tool  = spawn(backend.tool, filtered_args, { cwd: dlDir, env: process.env});
-                                        process.tool = tool;
-                                        processes.push(process);                    
+                                        process.tool = tool;//&line polling
+                                        processes.push(process);   //&line polling                 
                                     }                
                                     catch(err)
                                     {
@@ -441,7 +447,7 @@ server.post('/upload', function(req, res, next)
                                         res.end("error");
                                         return;
                                     }
-
+                                  //&begin [timeout, executionTimeout]
                                     process.executionTimeoutObject = setTimeout(function(process){
                                         console.log("Request timed out.");
                                         process.result = '{"message": "' + escapeJSON('Error: Execution Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.executionTimeout + ' millisecond(s).') + '"}';
@@ -449,7 +455,8 @@ server.post('/upload', function(req, res, next)
                                         process.completed = true;
                                         killProcessTree(process);
                                     }, config.executionTimeout, process);
-                                    
+                                  //&end [timeout, executionTimeout]
+                                  //&begin [timeout, pingTimeout]
                                     process.pingTimeoutObject = setTimeout(function(process){
                                         process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
                                         process.code = 9004;
@@ -457,7 +464,8 @@ server.post('/upload', function(req, res, next)
                                         process.pingTimeout = true;
                                         killProcessTree(process);
                                     }, config.pingTimeout, process);
-                                        
+                                  //&end [timeout, pingTimeout]
+                                  //&begin errorHandling
                                     var error_result = "";
                                     var data_result = "";
 
@@ -467,13 +475,13 @@ server.post('/upload', function(req, res, next)
 
                                     tool.stderr.on('data', function (data) {
                                         error_result += data;
-                                    });
+                                    });//&end errorHandling	
 
                                     tool.on('exit', function (code) 
                                     {
                                         var result = "";
                                         console.log("Process OnExit handler...");
-                                        
+                                      //&begin cancellation
                                         if (process.killed) // has been terminated
                                         {
                                             console.log("Finished cancellation");
@@ -485,7 +493,7 @@ server.post('/upload', function(req, res, next)
                                         }
 
                                         console.log("Preparing to send the result...");
-                                        
+                                      //&end cancellation
                                         if(error_result.indexOf('Exception in thread "main"') > -1){
                                             code = 1;
                                         }
@@ -507,10 +515,10 @@ server.post('/upload', function(req, res, next)
                                             console.log(data_result);
                                         }
                                         
-                                        process.result = result;
-                                        process.code = code;
-                                        process.completed = true;
-                                        
+                                        process.result = result;//&line polling
+                                        process.code = code;//&line polling
+                                        process.completed = true;//&line polling
+                                        //&begin cache
     //                                    if (cacheEnabled) // it can save the file to cache anyway, it does not cost much
     //                                    {
                                             fs.writeFile(cache_file_name, process.result, function(err){
@@ -524,10 +532,10 @@ server.post('/upload', function(req, res, next)
                                             }
                                             });
     //                                    }
-                                        
+                                        //&end cache
                                         console.log("The result has been sent.");                    
                                         
-                                        clearTimeout(process.timeoutObject);
+                                        clearTimeout(process.timeoutObject);//&line timeout
                                             
                                         cleanupOldFiles(uploadedFilePath, dlDir); 
                                         // we clean old files here, since the result is stored in the result variable
@@ -546,12 +554,14 @@ server.post('/upload', function(req, res, next)
                         }
                     });
                     
-                });
+                });// &end [fileProcessing]
             });
         });
     }
 });
 
+// &end fileUpload
+// &begin cleanOldFiles
 function finishCleanup(dir, results){
 	if (fs.existsSync(dir)){
 		fs.rmdir(dir, function (err) {
@@ -560,7 +570,7 @@ function finishCleanup(dir, results){
 		});
 	}
 }
- 
+//&begin [cleanOldFiles] 
 function cleanupOldFiles(path, dir) {
     console.log("Cleaning temporary files...");                    
 	//cleanup old files
@@ -580,7 +590,7 @@ function cleanupOldFiles(path, dir) {
 		}
 	});
 
-
+//&end [cleanOldFiles] 
 //done cleanup
 }
 
@@ -591,7 +601,7 @@ function deleteOld(path){
 		});
 	}
 }
-
+// &end cleanOldFiles
 function escapeJSON(unsafe) 
 {
     return unsafe.replace(/[\\]/g, '\\\\')
@@ -612,7 +622,7 @@ function changeFileExt(name, ext, newExt)
 
 	return name;
 }
-
+//&begin timeout
 function killProcessTree(process)
 {
     var spawn = require('child_process').spawn;
@@ -636,7 +646,7 @@ function killProcessTree(process)
     }
                 
 }
-
+//&end timeout
 
 /*
  * Catch all. error reporting for unknown routes
@@ -652,7 +662,7 @@ server.use(function(req, res, next){
     else
         res.send(404, "Sorry can't find that!");
 });
-
+//&begin checkingDependencies
 var dependency_count = 3; // the number of tools to be checked before the Visualizer starts
 console.log('=========================================');
 console.log('| ClaferMoo Visualizer v0.3.4.20-9-2013 |');
@@ -740,6 +750,7 @@ function dependency_ok()
         console.log('Ready. Listening on port ' + port);        
     }
 }
+//&end checkingDependencies
 
 function filterArgs(original_args, dirName, uploadedFilePath)
 {

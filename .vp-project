@@ -1,18 +1,33 @@
 ClaferIDE
     server
         backends
-            ClaferIG   
+            ClaferIG  
+		cache
+		fileUpload
+			handleEmptyFile
+			fileProcessing
+		cleanOldFiles
+		checkingDependencies
+		urlUploading
+		saveInstances
     client
         jquery
         help_pages
         views
             input
-			claferModel	
+				windowKey
+				instanceProcessing
+				handleError
+			claferModel
+			console	
         icons
 		helpSystem
 	processManagement
         interactive
         polling
         timeout
+			pingTimeout
+			executionTimeout
         errorHandling
         cancellation
+	selectionOfExamples

@@ -169,14 +169,14 @@ Host.method("updateData", function(data)
         if (this.modules[i].onDataLoaded)
             this.modules[i].onDataLoaded(data);
     }
-    
+  //&begin console
     if (typeof variable !== 'undefined' && console.log)
     {
         console.log(data.claferXML);
         console.log(data.instancesXML);
         console.log(data.output);
     }
-    
+  //&end console
     for (var i = 0; i < this.modules.length; i++)
     {
         if (this.modules[i].getContent)
