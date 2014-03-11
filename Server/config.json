@@ -1,5 +1,5 @@
 {
 	"port": "8092",
-	"executionTimeout": "1800000",
-	"pingTimeout": "10000"        
+	"executionTimeout": "1800000",//&line [timeout, executionTimeout]
+	"pingTimeout": "10000"        //&line [timeout, pingTimeout]
 }
