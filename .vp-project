@@ -1,0 +1,18 @@
+ClaferIDE
+    server
+        backends
+            ClaferIG   
+    client
+        jquery
+        help_pages
+        views
+            input
+			claferModel	
+        icons
+		helpSystem
+	processManagement
+        interactive
+        polling
+        timeout
+        errorHandling
+        cancellation
