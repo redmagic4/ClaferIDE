@@ -63,7 +63,8 @@ Input.method("onInitRendered", function()
     
     $("#myform [type='file']").change(this.inputChange.bind(this));
     $("#exampleURL").change(this.exampleChange.bind(this));
-    
+    $("#loadExampleInEditor").change(this.exampleChange.bind(this));
+
     var options = new Object();
     options.beforeSubmit = this.beginQuery.bind(this);
     options.success = this.fileSent.bind(this);//&line polling
@@ -126,7 +127,16 @@ Input.method("onPoll", function(responseObject)
     else
     {
         this.processToolResult(responseObject);
-        this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
+
+        if (responseObject.message.length >= 5 && responseObject.message.substring(0,5) == "Error")
+        {
+            this.host.findModule("mdControl").disableAll(); // if exited IG, then disable controls
+            // stop polling
+        }
+        else
+        {
+            this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
+        }
     }
 });        
 
@@ -152,6 +162,10 @@ Input.method("setClaferModelHTML", function(html){
     var iframe = $("#model")[0];
     iframe.src = iframe.src; // reloads the window
 });
+
+Input.method("setEditorModel", function(claferText){
+    this.editor.setValue(claferText);
+});
 //&end claferModel
 Input.method("fileSent", function(responseText, statusText, xhr, $form)  { 
     this.toCancel = false;
@@ -165,10 +179,11 @@ Input.method("fileSent", function(responseText, statusText, xhr, $form)  {
 
     if (responseText != "no clafer file submitted")
     {
-        this.setClaferModelHTML(responseText);//&line claferModel
         var data = new Object();
         data.message = responseText;
         this.host.updateData(data);
+        if (this.pollingTimeoutObject)
+            clearTimeout(this.pollingTimeoutObject);
         this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
     }
 });
@@ -273,7 +288,19 @@ Input.method("processToolResult", function(result)
 //    resultData.message = resultData.message;
     
 
-    $("#output").html($("#output").html() + result.message.replaceAll("\n", "<br>"));
+    if (result.html)
+    {
+        this.setClaferModelHTML(result.html);        
+    }
+
+    if (result.model != "")
+    {
+//        alert(result.model);        
+        this.editor.getSession().setValue(result.model);
+    }
+
+
+    $("#output").html($("#output").html() + result.message.replaceAll("ClaferIG>", "ClaferIG>\n").replaceAll("\n", "<br>"));
 //    this.host.updateData(resultData);
 
 //    alert(result.message);
@@ -333,6 +360,7 @@ Input.method("getInitContent", function()
     
     result += '</select>';
     result += '<input id="submitExample" type="submit" value="Compile"></input>';
+    result += '<input id="loadExampleInEditor" type="checkbox" value="unchecked">load in editor</input>';
 //&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
   //&begin [claferTextEditor]
