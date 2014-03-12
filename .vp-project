@@ -26,6 +26,5 @@ ClaferIDE
         timeout
 			pingTimeout
 			executionTimeout
-        errorHandling
         cancellation
 	selectionOfExamples
