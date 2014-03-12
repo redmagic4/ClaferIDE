@@ -5,6 +5,7 @@ ClaferIDE
 		fileUpload
 			handleEmptyFile
 			fileProcessing
+			compileErrorHandling
 		cleanOldFiles
 		checkingDependencies
 		urlUploading

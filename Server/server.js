@@ -337,7 +337,7 @@ server.post('/upload', function(req, res, next)
                     clafer_compiler.on('exit', function (code){	
                             // read the contents of the compiled file
                             fs.readFile(changeFileExt(uploadedFilePath, '.cfr', '.html'), function (err, html) 
-                            {
+                            {	//&begin [compileErrorHandling]
                                 if (err)
                                 {
                                     console.log('ERROR: Cannot read the compiled HTML file.');
@@ -377,6 +377,7 @@ server.post('/upload', function(req, res, next)
                                         return;
                                     }
                                 }
+                                //&end [compileErrorHandling]
                             });
 
 /* Consider Adding this functionality later:
