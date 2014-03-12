@@ -148,7 +148,7 @@ server.post('/poll', function(req, res, next)
                         process.code = 9004;
                         process.completed = true;
                         process.pingTimeout = true;
-                        killProcessTree(process);
+                        process.toKill = true;
                     }, config.pingTimeout, processes[i]);
                   //&end [pingTimeout, timeout]
                     
@@ -214,8 +214,8 @@ server.post('/poll', function(req, res, next)
                 }//&begin cancellation
                 else // if it is cancel
                 {
-                    killProcessTree(processes[i]);
-                    clearTimeout(processes[i].pingTimeoutObject);       //&line [pingTimeout, timeout]                
+                    processes[i].toKill = true;
+                    clearTimeout(processes[i].pingTimeoutObject); //&line [pingTimeout, timeout]                       
                     clearTimeout(processes[i].executionTimeoutObject);//&line [executionTimeout, timeout]
                     processes[i].toRemoveCompletely = true;
                     res.writeHead(200, { "Content-Type": "application/json"});
@@ -235,6 +235,13 @@ server.post('/poll', function(req, res, next)
     var i = 0;
     while (i < processes.length)
     {
+        if (processes[i].toKill)
+        {
+            clearTimeout(processes[i].pingTimeoutObject);
+            clearTimeout(processes[i].executionTimeoutObject);                    
+            killProcessTree(processes[i]);
+        }
+
         if (processes[i].toRemoveCompletely)
         {
             clearTimeout(processes[i].pingTimeoutObject);//&line [pingTimeout, timeout]
@@ -256,6 +263,7 @@ server.post('/upload', function(req, res, next)
 	console.log("/Upload request initiated.");
 
     var key = req.body.windowKey;
+    var loadExampleInEditor = req.body.loadExampleInEditor;
     var fileTextContents = req.body.claferText;
     var currentURL = "";
     
@@ -432,7 +440,7 @@ server.post('/upload', function(req, res, next)
                     
                     console.log("Compiling...");
 
-                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, code: 0, killed:false, contents: file_contents};//&line polling
+                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, code: 0, killed:false, contents: file_contents, toKill: false};
 
                     var clafer_compiler  = spawn("clafer", ["--mode=HTML", "--self-contained", "--add-comments", "--ss=none", uploadedFilePath]);
                     clafer_compiler.on('error', function (err){
@@ -449,8 +457,11 @@ server.post('/upload', function(req, res, next)
                                 var process = { windowKey: req.body.windowKey, html: "", toRemoveCompletely: false, tool: null, freshData: "", folder: dlDir, file: uploadedFilePath, lastUsed: d, freshError: ""};
                                 var args = [uploadedFilePath];
 
-                                process.model = file_contents;
-                              //&begin [compileErrorHandling]
+                                if (loadExampleInEditor)
+                                    process.model = file_contents;
+                                else
+                                    process.model = "";                                    
+								//&begin [compileErrorHandling]
                                 if (err)
                                 {
                                     console.log('ERROR: Cannot read the compiled HTML file.');
@@ -488,7 +499,7 @@ server.post('/upload', function(req, res, next)
                                         {
                                             if (processes[i].windowKey == req.body.windowKey)
                                             {
-                                                killProcessTree(processes[i]);
+                                                processes[i].toKill = true;
                                                 clearTimeout(processes[i].pingTimeoutObject);                
                                                 clearTimeout(processes[i].executionTimeoutObject);
                                                 processes[i].toRemoveCompletely = true;
@@ -509,7 +520,7 @@ server.post('/upload', function(req, res, next)
                                                 process.result = '{"message": "' + escapeJSON('Error: Execution Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.executionTimeout + ' millisecond(s).') + '"}';
                                                 process.code = 9003;
                                                 process.completed = true;
-                                                killProcessTree(process);
+                                                process.toKill = true;
                                             }, config.executionTimeout, process);
                                             //&end [executionTimeout, timeout]
                                             //&begin [pingTimeout, timeout]
@@ -519,7 +530,7 @@ server.post('/upload', function(req, res, next)
                                                 process.code = 9004;
                                                 process.completed = true;
                                                 process.pingTimeout = true;
-                                                killProcessTree(process);
+                                                process.toKill = true;
                                             }, config.pingTimeout, process);
                                             //&end [pingTimeout, timeout]
                                             tool = spawn("claferIG", args);
@@ -557,7 +568,7 @@ server.post('/upload', function(req, res, next)
 
                                                     if (processes[i].windowKey == req.body.windowKey)
                                                     {
-                                                        processes[i].tool = null;
+//                                                        processes[i].tool = null;
                                                         cleanupOldFiles(processes[i].file, processes[i].folder);
                                                     }
                                                 }
@@ -656,12 +667,12 @@ function changeFileExt(name, ext, newExt)
 function killProcessTree(process)
 {
     var spawn = require('child_process').spawn;
-    console.log("Killing the process tree with Parent PID = " + process.tool.pid);
     
     process.killed = true;
     
     if (process.tool)
     {
+        console.log("Killing the process tree with Parent PID = " + process.tool.pid);
     
         // first, try a Windows command
         var killer_win  = spawn("taskkill", ["/F", "/T", "/PID", process.tool.pid]);

@@ -26,7 +26,7 @@ function Input(host)
 
     this.requestTimeout = 60000; // what is the timeout for response after sending a file &line [timeout]
     this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
-    this.pollingDelay = 2000;    // how often to send requests (poll) for updates &line [polling]
+    this.pollingDelay = 700;    // how often to send requests (poll) for updates &line [polling]
 
     this.width = 640;
     this.height = 600;
@@ -300,7 +300,7 @@ Input.method("processToolResult", function(result)
     }
 
 
-    $("#output").html($("#output").html() + result.message.replaceAll("ClaferIG>", "ClaferIG>\n").replaceAll("\n", "<br>"));
+    $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n").replaceAll("\n", "<br>"));
 //    this.host.updateData(resultData);
 
 //    alert(result.message);
@@ -360,7 +360,7 @@ Input.method("getInitContent", function()
     
     result += '</select>';
     result += '<input id="submitExample" type="submit" value="Compile"></input>';
-    result += '<input id="loadExampleInEditor" type="checkbox" value="unchecked">load in editor</input>';
+    result += '<input id="loadExampleInEditor" type="checkbox" name="loadExampleInEditor" value="unchecked">load in editor</input>';
 //&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
   //&begin [claferTextEditor]
