@@ -43,6 +43,7 @@ var store = new express.session.MemoryStore;
 server.use(express.session({secret: 'supersecretstring', store: store}));
 
 server.use(express.static(__dirname + '/Client'));
+//server.use(express.static(__dirname + '/Client/'));
 server.use(express.bodyParser({ keepExtensions: true, uploadDir: __dirname + '/uploads' }));
 //&begin [urlUploading]
 var URLs = [];
@@ -178,7 +179,7 @@ server.post('/upload', function(req, res, next)
 	console.log("/Upload request initiated.");
 
     var key = req.body.windowKey;
-
+    var fileTextContents = req.body.claferText;
     var currentURL = "";
     
     var uploadedFilePath = "";
@@ -201,7 +202,7 @@ server.post('/upload', function(req, res, next)
             return;
         }		
 	} 
-    else 
+    else if (req.body.exampleFlag == "0")
     {    
         // first, check for the URL clafer file name. It happens only on clafer file submit, not the example file submit
         var found = false;
@@ -247,12 +248,36 @@ server.post('/upload', function(req, res, next)
         }
       //&end [urlUploading]
 	}
+    else // (req.body.exampleFlag == "2") submitted a text
+    {    
+        var i = 0;
+        uploadedFilePath = req.sessionID;
+        uploadedFilePath = uploadedFilePath.replace(/[\/\\]/g, "");
+        uploadedFilePath = __dirname + "/uploads/" + uploadedFilePath;
+        while(fs.existsSync(uploadedFilePath + i.toString() + ".cfr")){
+            i = i+1;
+        }
+        uploadedFilePath = uploadedFilePath + i.toString() + ".cfr";
+        
+        console.log('Creating a file with the contents...');
+
+        console.log(fileTextContents);
+
+        fs.writeFile(uploadedFilePath, fileTextContents, function(err) {
+            if(err) {
+                console.log(err);
+            } else {
+                console.log("The file was saved to ./uploads");
+                fileReady();
+            }
+        });
+
+    }
     
 /* downloading the file, if required */ 
 
     if (currentURL != "")
     {
-
         var i = 0;
         uploadedFilePath = req.sessionID;
         uploadedFilePath = uploadedFilePath.replace(/[\/\\]/g, "");
@@ -275,8 +300,11 @@ server.post('/upload', function(req, res, next)
         });
     }
     else
-        fileReady();
-                
+    {
+        if (req.body.exampleFlag != "2") 
+            fileReady();
+    }
+
     function fileReady()
     {
                     

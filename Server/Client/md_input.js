@@ -24,12 +24,12 @@ function Input(host)
     this.id = "mdInput";
     this.title = "Input File or Example";
 
-    this.requestTimeout = 60000; // what is the timeout for response after sending a file, &line timeout
-    this.pollingTimeout = 60000;  // what is the timeout when polling, &line [polling, timeout]
-    this.pollingDelay = 2000;    // how often to send requests (poll) for updates, &line polling
+    this.requestTimeout = 60000; // what is the timeout for response after sending a file &line timeout
+    this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
+    this.pollingDelay = 500;    // how often to send requests (poll) for updates  &line polling
 
-    this.width = 500;
-    this.height = 88;
+    this.width = 640;
+    this.height = 600;
     this.posx = 0;
     this.posy = 0;
     
@@ -40,6 +40,8 @@ function Input(host)
     this.serverAction = "/upload";
     
     this.dataFileChosen = false;
+
+    this.editor = null;
 }
 
 Input.method("onDataLoaded", function(data){
@@ -56,6 +58,7 @@ Input.method("onInitRendered", function()
 
     $("#submitFile").click(this.submitFileCall.bind(this));//&line selectionOfExamples
     $("#submitExample").click(this.submitExampleCall.bind(this));//&line selectionOfExamples
+    $("#submitText").click(this.submitTextCall.bind(this));
     
     $("#submitExample").attr("disabled", "disabled");//&line selectionOfExamples
     $("#submitFile").attr("disabled", "disabled");//&line selectionOfExamples
@@ -70,6 +73,11 @@ Input.method("onInitRendered", function()
     options.timeout = this.requestTimeout;// &line timeout
 
     $('#myform').ajaxForm(options); 
+
+    this.editor = ace.edit("clafer_editor");
+    this.editor.setTheme("ace/theme/monokai");
+    this.editor.getSession().setMode("ace/mode/text");
+
 //	$('#myform').submit(); moved submit out of here, because the backend list is not loaded yet
 });
 /*
@@ -266,6 +274,12 @@ Input.method("submitFileCall", function(){
 Input.method("submitExampleCall", function(){
     $("#exampleFlag").val("1");
 });
+
+Input.method("submitTextCall", function(){
+    $("#claferText").val(this.editor.getValue());
+    $("#exampleFlag").val("2");
+});
+
 Input.method("exampleChange", function(){
     if ($("#exampleURL").val())
     {
@@ -312,7 +326,7 @@ Input.method("processToolResult", function(result)
 //    resultData.instances = resultData.instances;
 //    resultData.message = resultData.message;
     
-    alert(result.message);
+//    alert(result.message);
 /*
     var data = new Object();
     data.error = false;
@@ -371,6 +385,12 @@ Input.method("getInitContent", function()
     result += '<input id="submitExample" type="submit" value="Compile"></input>';
 //&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
+
+    result += 'Or enter your model below: <input id="submitText" type="submit" value="Compile"/>';
+    result += '<input id="claferText" name="claferText" type="hidden"/>';
+
+    result += '<div style="height:500px; width: 620px;" name="clafer_editor" id="clafer_editor">';
+    result += '</div>';
 
     result += '</form></div>';
     
