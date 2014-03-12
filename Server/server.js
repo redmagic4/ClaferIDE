@@ -26,7 +26,7 @@ var fs = require("fs");
 var path = require('path');
 var express = require('express');
 var config = require('./config.json');
-var backendConfig = require('./Backends/backends.json');
+var backendConfig = require('./Backends/backends.json');//&line [backendsSelector]
 var crypto = require('crypto'); // for getting hashes
 
 //var tool_path = __dirname + "/ClaferMoo/spl_datagenerator/";
@@ -53,11 +53,11 @@ var processes = [];
 server.get('/Examples/:file', function(req, res) {
     res.sendfile('Examples/' + req.params.file);
 });
-
+//&begin [backendsSelector]
 server.get('/Backends/:file', function(req, res) {
     res.sendfile('Backends/' + req.params.file);
 });
-
+//&end [backendsSelector]
 server.get('/', function(req, res) {
 //uploads now and runs once app.html is fully loaded
 //works because client currently sends one empty post upon completion of loading
@@ -411,7 +411,7 @@ server.post('/upload', function(req, res, next)
                                 if (!cacheFound)//&line cache
                                 {
                                     try
-                                    {
+                                    {//&begin [backendsSelector]
                                         var backend = null;
                                     
                                         for (var i = 0; i < backendConfig.backends.length; i++)
@@ -425,7 +425,7 @@ server.post('/upload', function(req, res, next)
                                                 break;
                                             }
                                         }
-                                        
+                                      
                                         if (!found)
                                         {
                                             console.log('ERROR: Could not find a backend profile: "' + backendId + '".');
@@ -433,7 +433,7 @@ server.post('/upload', function(req, res, next)
                                             res.end("error");
                                             return;
                                         }
-                                    
+                                      //&end [backendsSelector]
                                     
                                         var filtered_args = filterArgs(backend.args, __dirname + "/Backends", uploadedFilePath);                            
                                         var tool  = spawn(backend.tool, filtered_args, { cwd: dlDir, env: process.env});

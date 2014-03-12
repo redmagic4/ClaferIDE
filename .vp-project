@@ -1,7 +1,7 @@
 ClaferIDE
     server
         backends
-            ClaferIG  
+            ClaferIG  		
 		cache
 		fileUpload
 			handleEmptyFile
@@ -31,3 +31,4 @@ ClaferIDE
         errorHandling
         cancellation
 	selectionOfExamples
+	backendsSelector

@@ -470,7 +470,7 @@ Input.method("getInitContent", function()
     result += '<input id="submitExample" type="submit" value="Optimize"></input>';
 	//&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
-
+//&begin [backendsSelector]
     result += '<span>Backend:</span><select id="backend" name="backend" style="width: 288px;">';   
     
     $.getJSON('/Backends/backends.json', 
@@ -492,7 +492,7 @@ Input.method("getInitContent", function()
             var options = '<option value="">(Could not load backends)</option>';
             $("#backend").html(options);            
         });
-    
+  //&end [backendsSelector]
     result += '</select>';
     result += '<input type="checkbox" name="cache" checked="checked"/>Use Cache';   //&line cache
     result += '</form></div>';
