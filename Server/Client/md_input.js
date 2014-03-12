@@ -352,7 +352,7 @@ Input.method("processToolResult", function(result)
 */
 
 });
-
+//&end [instanceProcessing]
 Input.method("getInitContent", function()
 {
     result = '<div id = "load_area">';

@@ -2,7 +2,6 @@ ClaferIDE
     server
         backends
             ClaferIG  
-		cache
 		fileUpload
 			handleEmptyFile
 			fileProcessing
@@ -18,8 +17,7 @@ ClaferIDE
 				windowKey
 				instanceProcessing
 				handleError
-			claferModel
-			console	
+			claferModel			
         icons
 		helpSystem
 	processManagement
