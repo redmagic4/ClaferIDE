@@ -249,6 +249,7 @@ server.post('/upload', function(req, res, next)
       //&end [urlUploading]
 	}
     else // (req.body.exampleFlag == "2") submitted a text
+    	//&begin [uploadFromTextEditor]
     {    
         var i = 0;
         uploadedFilePath = req.sessionID;
@@ -273,6 +274,7 @@ server.post('/upload', function(req, res, next)
         });
 
     }
+  //&end [uploadFromTextEditor]
     
 /* downloading the file, if required */ 
 

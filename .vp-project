@@ -6,6 +6,7 @@ ClaferIDE
 			handleEmptyFile
 			fileProcessing
 			compileErrorHandling
+		uploadFromTextEditor
 		cleanOldFiles
 		checkingDependencies
 		urlUploading
@@ -18,7 +19,8 @@ ClaferIDE
 				windowKey
 				instanceProcessing
 				handleError
-			claferModel			
+			claferModel		
+			claferTextEditor
         icons
 		helpSystem
 	processManagement

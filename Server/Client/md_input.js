@@ -73,11 +73,11 @@ Input.method("onInitRendered", function()
     options.timeout = this.requestTimeout;// &line timeout
 
     $('#myform').ajaxForm(options); 
-
+    //&begin [claferTextEditor]
     this.editor = ace.edit("clafer_editor");
     this.editor.setTheme("ace/theme/monokai");
     this.editor.getSession().setMode("ace/mode/text");
-
+  //&end [claferTextEditor]
 //	$('#myform').submit(); moved submit out of here, because the backend list is not loaded yet
 });
 /*
@@ -385,13 +385,13 @@ Input.method("getInitContent", function()
     result += '<input id="submitExample" type="submit" value="Compile"></input>';
 //&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
-
+  //&begin [claferTextEditor]
     result += 'Or enter your model below: <input id="submitText" type="submit" value="Compile"/>';
     result += '<input id="claferText" name="claferText" type="hidden"/>';
 
     result += '<div style="height:500px; width: 620px;" name="clafer_editor" id="clafer_editor">';
     result += '</div>';
-
+  //&end [claferTextEditor]
     result += '</form></div>';
     
     return result;
