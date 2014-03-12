@@ -27,20 +27,11 @@ SOFTWARE.
 
 var host = null;
 
-google.load("visualization", "1", {packages:["corechart"]});
-
-
 $(document).ready(function()
 {
     var modules = Array();
     
-    modules.push("Goals");
-    modules.push("Graph");
-//    modules.push("Console");
     modules.push("Input");
-//    modules.push("UseCases");
-    modules.push("Analysis");
-    modules.push("ComparisonTable");
     modules.push("ClaferModel");
     
     host = new Host(modules);
@@ -49,7 +40,6 @@ $(document).ready(function()
 function Host(modules)
 {
     this.key = Math.floor(Math.random()*1000000000).toString(16);
-    this.selector = new Selector(this);
     this.instanceCounterArg = "?special_counter?"; 
     this.instanceCounterLabel = "#instance"
     this.modules = new Array();
@@ -169,14 +159,12 @@ Host.method("updateData", function(data)
         if (this.modules[i].onDataLoaded)
             this.modules[i].onDataLoaded(data);
     }
-  //&begin console
     if (typeof variable !== 'undefined' && console.log)
     {
         console.log(data.claferXML);
         console.log(data.instancesXML);
         console.log(data.output);
     }
-  //&end console
     for (var i = 0; i < this.modules.length; i++)
     {
         if (this.modules[i].getContent)

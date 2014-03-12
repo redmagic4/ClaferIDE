@@ -339,91 +339,20 @@ Input.method("processToolResult", function(result)
 //    resultData.claferXML = resultData.claferXML;
 //    resultData.instances = resultData.instances;
 //    resultData.message = resultData.message;
-	
-	var instances = result.instances;
-	var abstractXMLText = result.claferXML;
-
-	if (this.optimizeFlag){
-		this.optimizeFlag = 0;
-    	this.addInstancesFlag = 0;
-	//&begin handleError
-    	if (!result.instances)
-		{
-            this.handleError(null, "malformed_output", null);
-       		return;
-   		}//&end handleError
-    } else if (this.addInstancesFlag) {
-        
-		this.optimizeFlag = 0;
-    	this.addInstancesFlag = 0;
-
-        if (this.previousData)
-        {
-            instances = this.previousData.Unparsed;
-
-            if (!result.instances)            
-            {
-                this.handleError(null, "empty_instance_file", null);
-                return;
-            }
-            
-            var parser = new InstanceConverter(result.instances);
-            instances += parser.convertFromClaferIGOutputToClaferMoo(this.previousData.abstractXML);            
-            abstractXMLText = this.previousData.abstractXML;
-        }
-        else//&begin handleError
-		{
-            this.handleError(null, "optimize_first", null);
-       		return;
-   		}//&end handleError
-	}
-
-	var instancesXMLText = (new InstanceConverter(instances)).convertFromClaferMooOutputToXML();
-
-	instancesXMLText = instancesXMLText.replaceAll('<?xml version="1.0"?>', '');
-	//&begin handleError
-    if (instancesXMLText.length == 0 || instancesXMLText == "<instances></instances>")
-    {
-        this.handleError(null, "empty_instances", null);
-        return;
-    }//&end handleError
-    //&begin handleError
-    if (instancesXMLText.indexOf("<instance></instance>") >= 0)
-	{
-        this.handleError(null, "malformed_instance", null);
-        return;
-    }//&end handleError
-
     
-//	abstractXMLText = abstractXMLText.replaceAll("&quot;", "\"");
-//	abstractXMLText = abstractXMLText.replaceAll("&gt;", ">");
-//	abstractXMLText = abstractXMLText.replaceAll("&lt;", "<");
-//	abstractXMLText = abstractXMLText.replaceAll("&amp;", "&");
-	
-	abstractXMLText = this.convertHtmlTags(abstractXMLText);
-		
-	// clean namespaces
-	abstractXMLText = abstractXMLText.replaceAll('<?xml version="1.0"?>', '');
-	abstractXMLText = abstractXMLText.replaceAll(' xmlns="http://clafer.org/ir" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cl="http://clafer.org/ir" xsi:schemalocation="http://clafer.org/ir https://github.com/gsdlab/clafer/blob/master/src/ClaferIR.xsd"', '');
-	abstractXMLText = abstractXMLText.replaceAll('cl:', '');
-	abstractXMLText = abstractXMLText.replaceAll('xsi:', '');
-
+    alert(result);
+/*
     var data = new Object();
     data.error = false;
     data.output = result.message;
     data.instancesXML = instancesXMLText;
     data.claferXML = abstractXMLText;
     
-    if (!this.previousData){
-    	var lines = result.instances.match(/^.*([\n\r]+|$)/gm);
-    	lines = result.instances.split(lines[1]);
-    	this.originalPoints = lines.length - 1;
-    }
-    data.originalPoints = this.originalPoints;
-    this.previousData = { Unparsed: instances, abstractXML: data.claferXML };
     this.host.updateData(data);
-});//&end [instanceProcessing]
+*/
 
+});
+//&end [instanceProcessing]
 Input.method("getInitContent", function()
 {
     result = '<div id = "load_area">';
@@ -432,7 +361,7 @@ Input.method("getInitContent", function()
     result += '<input type="file" size="25" name="claferFile" id="claferFile" style="width: 388px;">';
     result += '<input type="hidden" name="claferFileURL" value="' + window.location + '">';
     result += '<input type="hidden" name="exampleFlag" id="exampleFlag" value="0">';
-    result += '<input id="submitFile" type="submit" value="Optimize">';
+    result += '<input id="submitFile" type="submit" value="Compile">';
 
     result += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';//&line windowKey
     result += '<br>';
@@ -467,34 +396,10 @@ Input.method("getInitContent", function()
         });
     
     result += '</select>';
-    result += '<input id="submitExample" type="submit" value="Optimize"></input>';
-	//&end selectionOfExamples
+    result += '<input id="submitExample" type="submit" value="Compile"></input>';
+//&end selectionOfExamples
     result += '</fieldset><div style="height:8px">&nbsp;</div>';
-//&begin [backendsSelector]
-    result += '<span>Backend:</span><select id="backend" name="backend" style="width: 288px;">';   
-    
-    $.getJSON('/Backends/backends.json', 
-        function(data)
-        {
-            var backends = data.backends;
-            var options = "";
-        
-            for (var i = 0; i < backends.length; i++)
-            {
-                options += '<option value="' + backends[i].id + '">' + backends[i].label + '</option>';
-            }
-            
-            $("#backend").html(options);
-            $('#myform').submit(); // make the submit here            
-        }
-    ).error(function() 
-        { 
-            var options = '<option value="">(Could not load backends)</option>';
-            $("#backend").html(options);            
-        });
-  //&end [backendsSelector]
-    result += '</select>';
-    result += '<input type="checkbox" name="cache" checked="checked"/>Use Cache';   //&line cache
+
     result += '</form></div>';
     
     return result;

@@ -1,8 +1,7 @@
 ClaferIDE
     server
         backends
-            ClaferIG  		
-		cache
+            ClaferIG  
 		fileUpload
 			handleEmptyFile
 			fileProcessing
@@ -18,8 +17,7 @@ ClaferIDE
 				windowKey
 				instanceProcessing
 				handleError
-			claferModel
-			console	
+			claferModel			
         icons
 		helpSystem
 	processManagement
@@ -28,7 +26,5 @@ ClaferIDE
         timeout
 			pingTimeout
 			executionTimeout
-        errorHandling
         cancellation
 	selectionOfExamples
-	backendsSelector
