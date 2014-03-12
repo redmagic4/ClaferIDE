@@ -81,6 +81,7 @@ server.post('/', function(req, res, next) {
 	res.end(req.body.data);
 });
 	//&end [saveInstances]
+//&begin [control]
 server.get('/control', function(req, res){
     console.log("Control: Enter");
     for (var y = 0; y < processes.length; y++)
@@ -115,7 +116,7 @@ server.get('/control', function(req, res){
     res.end('{"message": "OK"}');
 
 });
-
+//&end [control]
 /*
  * Handle Polling
  * The client will poll the server to get the latest updates or the final result
@@ -447,6 +448,7 @@ server.post('/upload', function(req, res, next)
                                         cleanupOldFiles(uploadedFilePath, dlDir); // cleaning up when cached result is found
                                         return;
                                     }
+                                    //&end [compileErrorHandling]
                                     else
                                     {
                                         console.log("CC: Zero Return Value");
@@ -461,14 +463,14 @@ server.post('/upload', function(req, res, next)
                                                 // do some other stuff
                                             }
                                         }
-
+                                      
                                         if (!found)
                                         {
 
                                             var d = new Date();
                                             var process = { windowKey: req.body.windowKey, tool: null, freshData: "", folder: dlDir, file: uploadedFilePath, lastUsed: d, freshError: ""};
                                             var args = [uploadedFilePath];
-
+                                            //&begin [executionTimeout, timeout]
                                             process.executionTimeoutObject = setTimeout(function(process){
                                                 console.log("Error: Execution Timeout.");
                                                 process.result = '{"message": "' + escapeJSON('Error: Execution Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.executionTimeout + ' millisecond(s).') + '"}';
@@ -476,7 +478,8 @@ server.post('/upload', function(req, res, next)
                                                 process.completed = true;
                                                 killProcessTree(process);
                                             }, config.executionTimeout, process);
-                                            
+                                            //&end [executionTimeout, timeout]
+                                            //&begin [pingTimeout, timeout]
                                             process.pingTimeoutObject = setTimeout(function(process){
                                                 console.log("Error: Ping Timeout.");
                                                 process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
@@ -485,7 +488,7 @@ server.post('/upload', function(req, res, next)
                                                 process.pingTimeout = true;
                                                 killProcessTree(process);
                                             }, config.pingTimeout, process);
-                                            
+                                            //&end [pingTimeout, timeout]
                                             tool = spawn("claferIG", args);
                                             process.tool = tool;
                                             processes.push(process);
@@ -531,7 +534,7 @@ server.post('/upload', function(req, res, next)
                                     res.writeHead(200, { "Content-Type": "text/html"});
                                     res.end(html);
                                 }
-                                //&end [compileErrorHandling]
+                                
                             });
 
                     });

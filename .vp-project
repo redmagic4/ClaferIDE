@@ -21,6 +21,8 @@ ClaferIDE
 				handleError
 			claferModel		
 			claferTextEditor
+			control
+			output
         icons
 		helpSystem
 	processManagement
