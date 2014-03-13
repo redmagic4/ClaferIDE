@@ -505,9 +505,9 @@ server.post('/upload', function(req, res, next)
 
                         // it makes sense to get the compiled files for the models (e.g., HTML) 
                         // that may show syntax errors
-
+                      //&begin [multipleFormatOutput]
                         var formats_for_process = [];
-
+                        
                         for (var i = 0; i < formatConfig.formats.length; i++)
                         {
                             var format = new Object();
@@ -517,7 +517,7 @@ server.post('/upload', function(req, res, next)
                             format.process = process;
                             formats_for_process.push(format);
                         }
-
+                      //&end [multipleFormatOutput]
                         formats_for_process.forEach(function(item) 
                         {
                             if (item.shows_compilation_errors || (item.process.compiler_code == 0))
@@ -574,7 +574,7 @@ server.post('/upload', function(req, res, next)
     }
 });
 //&end fileUpload
-
+//&begin [multipleFormatOutput]
 function onAllFormatsCompiled(process)
 {
     process.mode_completed = true;
@@ -587,7 +587,7 @@ function onAllFormatsCompiled(process)
 //}
 
 }
-
+//&end [multipleFormatOutput]
 /*
     process.executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, process);
     process.pingTimeoutObject = setTimeout(pingTimeoutFunc, config.pingTimeout, process);

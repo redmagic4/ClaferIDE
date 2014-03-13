@@ -5,6 +5,7 @@ ClaferIDE
 		fileUpload
 			handleEmptyFile
 			fileProcessing
+				multipleFormatOutput
 			compileErrorHandling
 		uploadFromTextEditor
 		cleanOldFiles
