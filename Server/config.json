@@ -1,6 +1,9 @@
 {
 	"port": "8194",
-	"inactivityTimeout": "60000",//&line [timeout, inactivityTimeout]
+	"inactivityTimeout": "600000",//&line [timeout, inactivityTimeout]
 	"pingTimeout": "10000",//&line [timeout, pingTimeout]
-	"cleaningTimeout": "5000"        
+	"cleaningTimeout": "5000",
+	"commandLimitingRate": {"interval": "1", "limit":"2"},
+	"pollingLimitingRate": {"interval": "1", "limit":"4"},
+	"fileRequestLimitingRate": {"interval": "1", "limit":"10"}
 }

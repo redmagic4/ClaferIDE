@@ -42,7 +42,7 @@ function Input(host)
 
     this.editor = null;
     this.editorWidth =this.width - 5;
-    this.editorHeight = this.height - 90;
+    this.editorHeight = this.height - 83;
 }
 
 Input.method("onInitRendered", function()
@@ -105,7 +105,7 @@ Input.method("beginQuery", function(formData, jqForm, options) {
     $("#cancel").click(this.cancelCall.bind(this));//&line [cancellation]
     this.host.findModule("mdControl").disableAll();
 
-    this.setClaferModelHTML('<div id="preloader_compiler"><img id="preloader_img" src="/images/preloader.gif" alt="Compiling..."/><span id="status_label">Compiling...</span></div>');
+//    this.setClaferModelHTML('<div id="preloader_compiler"><img id="preloader_img" src="/images/preloader.gif" alt="Compiling..."/><span id="status_label">Compiling...</span></div>');
 
     return true; 
 });
@@ -114,6 +114,8 @@ Input.method("beginQuery", function(formData, jqForm, options) {
 Input.method("endQuery", function()  { 
 	$("#preloader").remove();
 	$("#load_area #myform").show();
+
+    $("#claferFileURL").val(""); // empty the URL
 	
 	return true;
 });
@@ -162,13 +164,6 @@ Input.method("poll", function()
     $.ajax(options);
 });
 //&begin claferModel
-Input.method("setClaferModelHTML", function(html){
-    this.host.findModule("mdCompiledFormats").lastModel = this.host.findModule("mdCompiledFormats").model;
-    this.host.findModule("mdCompiledFormats").model = html;
-    var iframe = $("#html_format")[0];
-    iframe.src = iframe.src; // reloads the window
-});
-
 Input.method("setEditorModel", function(claferText){
     this.editor.setValue(claferText);
 });
@@ -193,7 +188,7 @@ Input.method("fileSent", function(responseText, statusText, xhr, $form)  {
     else
     {
         this.endQuery(); // else enable the form anyways
-        this.setClaferModelHTML(this.host.findModule("mdCompiledFormats").lastModel);
+//        this.setClaferModelHTML(this.host.findModule("mdCompiledFormats").lastModel);
     }
 });
 //&end polling
@@ -274,6 +269,7 @@ Input.method("inputChange", function(){
     {
         if (filename.substring(filename.length-4) == ".cfr"){
             $("#submitFile").removeAttr("disabled");                    
+            $("#submitFile").val("Compile");            
         }  
         else{ // unknown file
             $("#submitFile").val("Unknown File");
@@ -282,6 +278,7 @@ Input.method("inputChange", function(){
     }
     else{ // no file
         $("#submitFile").attr("disabled", "disabled");       
+        $("#submitFile").val("Compile");            
     }
     
 });
@@ -297,22 +294,7 @@ Input.method("processToolResult", function(result)
 
     if (result.compiled_formats)
     {
-        for (var i = 0; i < result.compiled_formats.length; i++)
-        {
-            if (result.compiled_formats[i].id == "html")
-            {
-                this.setClaferModelHTML(result.compiled_formats[i].result);         
-            }
-            else // textarea
-            {
-                $("#" + result.compiled_formats[i].id + "_format").val(result.compiled_formats[i].result); 
-            }
-        }
-    }
-    else
-    {
-        this.setClaferModelHTML(this.host.findModule("mdCompiledFormats").lastModel);
-        // do not need to restore other formats, because they are not modified
+        this.host.findModule("mdCompiledFormats").setResult(result.compiled_formats);
     }
 
     if (result.model != "")
@@ -334,16 +316,15 @@ Input.method("getInitContent", function()
 {
     result = '<div id = "load_area">';
     result += '<form id="myform" action="' + this.serverAction + '" method="post" enctype="multipart/form-data" style="display: block;">';
-//    result += '<fieldset>';
-    result += '<input type="file" size="25" name="claferFile" id="claferFile" style="width: 230px;">';
-    result += '<input type="hidden" name="claferFileURL" value="' + window.location + '">';
+    result += '<input type="file" size="25" name="claferFile" id="claferFile" style="width: 230px;" title="If you want to upload your clafer file, select one here "/>';
+    result += '<input type="hidden" name="claferFileURL" id="claferFileURL" value="' + this.host.claferFileURL + '">';
     result += '<input type="hidden" name="exampleFlag" id="exampleFlag" value="0">';
-    result += '<input id="submitFile" type="submit" value="Compile">';
+    result += '<input id="submitFile" type="submit" value="Compile" title="Compile the chosen file with Clafer Compiler">';
 
     result += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';//&line windowKey
     result += '<br>';
 	//&begin selectionOfExamples
-    result += '<select id="exampleURL" name="exampleURL" style="width: 230px;">';   
+    result += '<select id="exampleURL" name="exampleURL" style="width: 230px;" title="If you want, you can choose to compile an example clafer model from the list">';   
 
     $.getJSON('/Examples/examples.json', 
         function(data)
@@ -373,20 +354,20 @@ Input.method("getInitContent", function()
         });
     
     result += '</select>';
-    result += '<input id="submitExample" type="submit" value="Compile"></input>';
-    result += '<div style="display:inline-block"><input id="loadExampleInEditor" type="checkbox" name="loadExampleInEditor" value="unchecked">Load in editor below</input></div>';
-//&end selectionOfExamples
+    result += '<input id="submitExample" type="submit" value="Compile" title="Compile the chosen example using Clafer Compiler"></input>';
+    result += '<div style="display:inline-block"><input id="loadExampleInEditor" type="checkbox" name="loadExampleInEditor" value="unchecked" title="If checked, the editor window below will be loaded with a file or an example submitted">Load in editor below</input></div>';
+  //&end selectionOfExamples
 //    result += '</fieldset>';
 //    result += '<br/>';
     result += '<div style="height: 1px; border-bottom: 2px groove threedface"></div>';
     //&begin [claferTextEditor]
-    result += 'Or enter your model: <input id="submitText" type="submit" value="Compile"/>';
+    result += 'Or enter your model: <input id="submitText" type="submit" value="Compile" title="Compile the contents of the editor below using Clafer Compiler"/>';
 
-    result += '&nbsp;&nbsp;&nbsp;&nbsp;<div style="display: inline-block; border: 2px groove threedface; float:right">Scope computing: <select id="ss" name="ss">';
+    result += '&nbsp;&nbsp;&nbsp;&nbsp;<div style="display: inline-block; border: 2px groove threedface; float:right">Scope computing: <select id="ss" name="ss" title="Choose a scope computing strategy. Scopes are used for instantiation using bounded model checking">';
 
-    result += '<option value="none">Disabled</option>';
-    result += '<option value="simple" selected="selected">Fast</option>';
-    result += '<option value="full">Full</option>';
+    result += '<option value="none" title="Disable scope computing strategy. All scopes are to be set to 1">Disabled</option>';
+    result += '<option value="simple" selected="selected" title="Fast computation. Scopes are not precise, but this strategy works in most cases">Fast</option>';
+    result += '<option value="full" title="Full computation. This method is very slow, but for small models works relatively fast">Full</option>';
 
     result += '</select></div>';
 

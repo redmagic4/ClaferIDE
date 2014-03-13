@@ -3,7 +3,8 @@
         {
             "id": "clafer_source", 
             "label": "Source", 
-            "file_extension": ".cfr",             
+            "tooltip": "Clafer source model (RESERVED)", 
+            "file_suffix": ".cfr",             
             "compiler_mode": "none",
             "compiler_args": [],
             "shows_compilation_errors" : "false",            
@@ -12,20 +13,42 @@
         {
             "id": "html", 
             "label": "HTML", 
-            "file_extension": ".html",             
+            "tooltip": "HTML rendering of the model", 
+            "file_suffix": ".html",             
             "compiler_mode": "HTML",
-            "compiler_args": ["--self-contained"],
+            "compiler_args": ["--self-contained", "--add-comments"],
             "shows_compilation_errors" : "true",            
             "display_element": "iframe"
         },
         {
             "id": "choco", 
             "label": "Choco JS", 
-            "file_extension": ".js",             
+            "tooltip": "Choco solver file format (Javascript)", 
+            "file_suffix": ".js",             
             "compiler_mode": "choco",
             "compiler_args": [],
             "shows_compilation_errors" : "false",
             "display_element": "textarea"
-        }
+        },
+        {
+            "id": "alloy", 
+            "label": "Alloy Model", 
+            "tooltip": "Alloy solver file format (ALS)", 
+            "file_suffix": ".als",             
+            "compiler_mode": "alloy",
+            "compiler_args": [],
+            "shows_compilation_errors" : "false",
+            "display_element": "textarea"
+        },
+        {
+            "id": "xml", 
+            "label": "XML IR", 
+            "tooltip": "XML intermediate representation (XML)", 
+            "file_suffix": ".xml",             
+            "compiler_mode": "xml",
+            "compiler_args": [],
+            "shows_compilation_errors" : "false",
+            "display_element": "xml"
+        }                        
     ]   
 }
