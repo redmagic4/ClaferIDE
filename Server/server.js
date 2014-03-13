@@ -219,7 +219,7 @@ server.post('/control', function(req, res){
                         
                     });
 
-
+                  //&begin [scopeInteraction]
                     // if the backend supports production of the scope file, then send this command
                     // the command will be handled after the initial processing in any case
 
@@ -233,7 +233,7 @@ server.post('/control', function(req, res){
                     {
                         processes[i].producedScopes = true;
                     }
-
+                  //&end [scopeInteraction]
                     resultMessage = "started";
                     isError = false;
 

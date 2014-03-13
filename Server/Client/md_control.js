@@ -52,13 +52,13 @@ Control.method("getInitContent", function(){
     ret += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';
 	ret += '<input type="button" class="inputRunStopButton" id="RunStop" value="Run" disabled="disabled"/><br>';
     ret += '<fieldset id="backendButtonsFieldset"><div id="backendButtons"></div></fieldset>';
-
+  //&begin [scopeInteraction]
     ret += '<br/><fieldset id="scopeControl">';
 
     ret += '<legend>Scopes</legend>';   
     ret += '<span>Global:</span><input type="text" size="2" value="1" id="globalScopeValue"/><button id="setGlobalScope">Set</button>';
     ret += '<br/>Individual scopes:</span><br/><input type="text" style="width:140px;" id="individualClafer"></input>';
-
+  //&end [scopeInteraction]
     ret += '<span id="ClaferListCont" style="width:30px"></span>';
     ret += '<input type="text" size="2" id="individualScopeValue"/>';
 
@@ -155,7 +155,7 @@ Control.method("runStopClick", function(){
         $("#ControlForm").submit();
     }
 });
-
+//&begin [scopeInteraction]
 Control.method("setGlobalScopeClick", function(){
     $("#ControlOp").val("setGlobalScope");
     $("#ControlOpArg1").val($ ("#globalScopeValue").val());
@@ -168,7 +168,7 @@ Control.method("setIndividualScopeClick", function(){
     $("#ControlOpArg2").val($ ("#individualClafer").val());
 //    $("#ControlForm").submit();
 });
-
+//&end [scopeInteraction]
 Control.method("enableRuntimeControls", function(){
     $("#" + $( "#backend option:selected" ).val() + "_buttons").children("button").removeAttr("disabled");
     $("#RunStop").val("Stop");
