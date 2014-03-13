@@ -237,6 +237,7 @@ server.post('/control', function(req, res){
 //                clearTimeout(processes[i].pingTimeoutObject);                
 //                clearTimeout(processes[i].executionTimeoutObject);
             }
+            //&begin [scopeInteraction]
             else if (req.body.operation == "setGlobalScope")
             {
                 console.log("Control: setGlobalScope");
@@ -301,6 +302,7 @@ server.post('/control', function(req, res){
                 resultMessage = "individual_scope_set";
                 isError = false;
             }
+          //&end [scopeInteraction]
             else
             {
                 var parts = req.body.operation.split("-");
