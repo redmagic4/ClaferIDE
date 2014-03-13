@@ -1,5 +1,5 @@
 {
 	"port": "8094",
-	"inactivityTimeout": "5000",
+	"inactivityTimeout": "5000",//&line [timeout, inactivityTimeout]
 	"pingTimeout": "10000"        //&line [timeout, pingTimeout]
 }
