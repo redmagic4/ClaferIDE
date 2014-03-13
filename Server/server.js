@@ -90,20 +90,27 @@ server.get('/control', function(req, res){
         {
 //            var d = new Date();
 //            processes[y].lastUsed = d;
-            var CurProcess = processes[y];
+            var process = processes[y];
             if (req.query.operation == "next")
             {
                 console.log("Control: Next Instance");
-                CurProcess.tool.stdin.write("n\n"); 
+                process.tool.stdin.write("n\n"); 
             }
             else if (req.query.operation == "scope")
             {
                 console.log("Control: Increase scope by " + req.query.increaseScopeBy);
-                CurProcess.tool.stdin.write("i " + req.query.increaseScopeBy + "\n");
+                process.tool.stdin.write("i " + req.query.increaseScopeBy + "\n");
             }
             else
             {
                 console.log("Control: Unknown command");
+            }
+
+            // resetting the execution timeout
+            if (process.executionTimeoutObject)
+            {
+                clearTimeout(process.executionTimeoutObject);
+                process.executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, process);
             }
 
             break;
@@ -271,8 +278,6 @@ server.post('/upload', function(req, res, next)
     
 	//check if client has either a file directly uploaded or a url location of a file
 	//&begin [urlUploading]
-    console.log("URL found!");
-    console.log(req.body.exampleFlag);
    	
     if (req.body.exampleFlag == "1")
     {
@@ -483,8 +488,8 @@ server.post('/upload', function(req, res, next)
                                 process.model = file_contents;
                             else
                                 process.model = "";                                    
-                          //&begin [compileErrorHandling]
-                            if (err)
+							//&begin [compileErrorHandling]
+                            if (err) // error reading HTML, maybe it is not really present, means a fatal compilation error
                             {
                                 console.log('ERROR: Cannot read the compiled HTML file.');
                                 process.result = '{"message": "' + escapeJSON("Error: Compilation Error") + '"}';
@@ -494,93 +499,71 @@ server.post('/upload', function(req, res, next)
                                 process.html = "";
                                 processes.push(process);           
                                 cleanupOldFiles(uploadedFilePath, dlDir); // cleaning up when cached result is found
+                                // here we write the response, because we return 
                                 res.writeHead(400, { "Content-Type": "text/html"});
                                 res.end("compile_error");
                                 return;
                             }
+                            // else there is no error, and HTML file is present.
+
+                            if (code != 0) // if the result is non-zero, means compilation error
+                            {
+                                console.log("CC: Non-zero Return Value");
+                                process.result = '{"message": "' + escapeJSON("Error: Compilation Error") + '"}';
+                                process.code = 0;
+                                process.completed = true;
+                                process.tool = null;
+                                process.html = html.toString();
+                                processes.push(process);           
+                                cleanupOldFiles(uploadedFilePath, dlDir); // cleaning up when cached result is found
+                            }
+                          //&end [compileErrorHandling]
                             else
                             {
-                                if (code != 0)
-                                {
-                                    console.log("CC: Non-zero Return Value");
-                                    process.result = '{"message": "' + escapeJSON("Error: Compilation Error") + '"}';
-                                    process.code = 0;
-                                    process.completed = true;
-                                    process.tool = null;
-                                    process.html = html.toString();
-                                    processes.push(process);           
-                                    cleanupOldFiles(uploadedFilePath, dlDir); // cleaning up when cached result is found
-                                }
-                              //&end [compileErrorHandling]
-                                else
-                                {
-                                    console.log("CC: Zero Return Value");
-/*
-                                    if (!found)
+                                console.log("CC: Zero Return Value");
+
+                                process.executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, process);
+                                process.pingTimeoutObject = setTimeout(pingTimeoutFunc, config.pingTimeout, process);
+                                
+                                tool = spawn("claferIG", args);
+                                process.tool = tool;
+                                process.html = html.toString();
+                                processes.push(process);
+                                tool.stdout.on("data", function (data){
+                                    for (var i = 0; i < processes.length; i++)
                                     {
-*/                                            //&begin [executionTimeout, timeout]
-                                        process.executionTimeoutObject = setTimeout(function(process){
-                                            console.log("Error: Execution Timeout.");
-                                            process.result = '{"message": "' + escapeJSON('Error: Execution Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.executionTimeout + ' millisecond(s).') + '"}';
-                                            process.code = 9003;
-                                            process.completed = true;
-                                            process.toKill = true;
-                                        }, config.executionTimeout, process);
-                                        //&end [executionTimeout, timeout]
-                                        //&begin [pingTimeout, timeout]
-                                        process.pingTimeoutObject = setTimeout(function(process){
-                                            console.log("Error: Ping Timeout.");
-                                            process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
-                                            process.code = 9004;
-                                            process.completed = true;
-                                            process.pingTimeout = true;
-                                            process.toKill = true;
-                                        }, config.pingTimeout, process);
-                                        //&end [pingTimeout, timeout]
-                                        tool = spawn("claferIG", args);
-                                        process.tool = tool;
-                                        process.html = html.toString();
-                                        processes.push(process);
-                                        tool.stdout.on("data", function (data){
-                                            for (var i = 0; i < processes.length; i++)
+                                        if (processes[i].windowKey == req.body.windowKey)
+                                        {
+                                            if (!processes[i].completed)
                                             {
-                                                if (processes[i].windowKey == req.body.windowKey)
-                                                {
-                                                    if (!processes[i].completed)
-                                                    {
-                                                        processes[i].freshData += data;
-                                                    }
-                                                }
+                                                processes[i].freshData += data;
                                             }
-                                        });
+                                        }
+                                    }
+                                });
 
-                                        tool.stderr.on("data", function (data){
-                                            for (var i = 0; i<processes.length; i++)
-                                            {
-                                                if (processes[i].windowKey == req.body.windowKey)
-                                                {
-                                                    if (!processes[i].completed){
-                                                        processes[i].freshError += data;
-                                                    }
-                                                }
+                                tool.stderr.on("data", function (data){
+                                    for (var i = 0; i<processes.length; i++)
+                                    {
+                                        if (processes[i].windowKey == req.body.windowKey)
+                                        {
+                                            if (!processes[i].completed){
+                                                processes[i].freshError += data;
                                             }
-                                        });
+                                        }
+                                    }
+                                });
 
-                                        tool.on("close", function (code){
-                                            console.log("CLAFERIG: On Exit");
-                                            for (var i = 0; i<processes.length; i++){
+                                tool.on("close", function (code){
+                                    console.log("CLAFERIG: On Exit");
+                                    for (var i = 0; i<processes.length; i++){
 
-                                                if (processes[i].windowKey == req.body.windowKey)
-                                                {
-//                                                        processes[i].tool = null;
-                                                    cleanupOldFiles(processes[i].file, processes[i].folder);
-                                                }
-                                            }
-                                        });
-//                                        }
-                                }
-
-                                res.end(html);
+                                        if (processes[i].windowKey == req.body.windowKey)
+                                        {
+                                            cleanupOldFiles(processes[i].file, processes[i].folder);
+                                        }
+                                    }
+                                });
                             }
                         });
 
@@ -595,9 +578,29 @@ server.post('/upload', function(req, res, next)
         });
     }
 });
-
-// &end fileUpload
-// &begin cleanOldFiles
+//&end fileUpload
+//&begin [executionTimeout, timeout]
+function executionTimeoutFunc (process)
+{
+    console.log("Error: Execution Timeout.");
+    process.result = '{"message": "' + escapeJSON('Error: Execution Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.executionTimeout + ' millisecond(s).') + '"}';
+    process.code = 9003;
+    process.completed = true;
+    process.toKill = true;
+}
+//&end [executionTimeout, timeout]
+//&begin [pingTimeout, timeout]
+function pingTimeoutFunc(process)
+{
+    console.log("Error: Ping Timeout.");
+    process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
+    process.code = 9004;
+    process.completed = true;
+    process.pingTimeout = true;
+    process.toKill = true;
+}
+//&end [pingTimeout, timeout]
+//&begin cleanOldFiles
 function finishCleanup(dir, results){
 	if (fs.existsSync(dir)){
 		fs.rmdir(dir, function (err) {
