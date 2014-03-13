@@ -44,18 +44,47 @@ Control.method("getInitContent", function(){
 
     ret += '<span>Instance Generators:</span><select id="backend" name="backend">';   
     
+    ret += '</select>';
+
+    ret += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';
+	ret += '<input type="button" class="inputRunStopButton" id="RunStop" value="Run" disabled="disabled"/><br>';
+    ret += '<div id="backendButtons"></div>';
+
+    
     $.getJSON('/Backends/backends.json', 
         function(data)
         {
             var backends = data.backends;
             var options = "";
         
+            var backendButtons = "";
+
+            var display = "block";
+
             for (var i = 0; i < backends.length; i++)
             {
                 options += '<option value="' + backends[i].id + '">' + backends[i].label + '</option>';
+
+                backendButtons += '<div id="' + backends[i].id + '_buttons" style="display:' + display + ';">';
+                display = "none";
+
+                for (var j = 0; j < backends[i].control_buttons.length; j++)
+                {
+                    backendButtons += '<button class="control_button" disabled="disabled" id="' + backends[i].id + "-" + backends[i].control_buttons[j].id + '" name="' + backends[i].control_buttons[j].id + '">' + backends[i].control_buttons[j].label + "</button>";
+                }
+
+                backendButtons += '</div>';
+
             }
-            
+
             $("#backend").html(options);
+            $("#backendButtons").html(backendButtons);
+
+            $(".control_button").click(function(){
+                $("#ControlOp").val(this.id);
+//                return false;
+            });
+
             $("#myform").submit();
 
         }
@@ -66,12 +95,6 @@ Control.method("getInitContent", function(){
             $("#myform").submit();
 
         });
-    
-    ret += '</select>';
-
-    ret += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';
-	ret += '<input type="button" class="inputRunStopButton" id="RunStop" value="Run" disabled="disabled"/><br>';
-    ret += '<input type="button" class="inputNextButton" id="Next" value="Next Instance" disabled="disabled"/><br>';
 
     this.data = "";
     this.error = "";
@@ -82,25 +105,8 @@ Control.method("getInitContent", function(){
 
 Control.method("onInitRendered", function()
 {
-    $("#RunStop").click(function(){
-        if ($(this).val() == "Run")
-        {
-            $("#ControlOp").val("run");
-            $(this).val("Stop");
-            $("#ControlForm").submit();
-        }
-        else
-        {
-            $("#ControlOp").val("stop");
-            $(this).val("Run");
-            $("#ControlForm").submit();
-        }
-    });
-
-    $("#Next").click(function(){
-        $("#ControlOp").val("next");
-        $("#ControlForm").submit();
-    });
+    $("#backend")[0].onchange = this.onBackendChange.bind(this);        
+    $("#RunStop")[0].onclick = this.runStopClick.bind(this);
 
     var options = new Object();
     options.beforeSubmit = this.beginQuery.bind(this);
@@ -114,16 +120,38 @@ Control.method("resetControls", function(){
     $("#RunStop").val("Run");
 });
 
-Control.method("enableAll", function(){
-    $("#Next").removeAttr("disabled");
-    $("#RunStop").removeAttr("disabled");
-    $("#RunStop").val("Stop");
+Control.method("runStopClick", function(){
+    if ($("#RunStop").val() == "Run")
+    {
+        $("#ControlOp").val("run");
+        $("#RunStop").val("Stop");
+//        $("#backend").attr("disabled", "disabled");
+        this.enableRuntimeControls();
+        $("#ControlForm").submit();
+    }
+    else
+    {
+        $("#ControlOp").val("stop");
+        $("#RunStop").val("Run");
+//        $("#backend").removeAttr("disabled");
+        this.disableRuntimeControls();
+        $("#ControlForm").submit();
+    }
+});
+
+Control.method("enableRuntimeControls", function(){
+    $("#" + $( "#backend option:selected" ).val() + "_buttons").children("button").removeAttr("disabled");
+});
+
+Control.method("disableRuntimeControls", function(){
+    $("#" + $( "#backend option:selected" ).val() + "_buttons").children("button").attr("disabled", "disabled");
 });
 
 Control.method("disableAll", function(){
-    $("#Next").attr("disabled", "disabled");
     $("#RunStop").attr("disabled", "disabled");
+    $("#" + $( "#backend option:selected" ).val() + "_buttons").children("button").attr("disabled", "disabled");
 });
+
 
 Control.method("onDataLoaded", function(data){
 });
@@ -134,7 +162,10 @@ Control.method("beginQuery", function(formData, jqForm, options){
 
 Control.method("showResponse", function(responseText, statusText, xhr, $form)
 {
-    this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay); // start polling
+    if (responseText == "started")
+    {        
+        this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay); // start polling
+    }
     $("#ControlForm").show();
 });
 
@@ -150,14 +181,11 @@ Control.method("onPoll", function(responseObject)
     
     if (responseObject.completed)
     {
-//        this.disableAll(); // if exited IG, then disable controls
     }
     else
     {
         if (responseObject.message.length >= 5 && responseObject.message.substring(0,5) == "Error")
         {
-//            this.disableAll(); // if exited IG, then disable controls
-            // stop polling
         }
         else
         {
@@ -194,4 +222,13 @@ Control.method("processToolResult", function(result)
 
     $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n"));
 
+});
+
+Control.method("onBackendChange", function()
+{
+    $("#backendButtons").children().each(function(){
+        this.style.display = "none";
+    });
+
+    $("#backendButtons").children("#" + $( "#backend option:selected" ).val() + "_buttons")[0].style.display = "block";
 });

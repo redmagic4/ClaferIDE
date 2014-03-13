@@ -78,6 +78,10 @@ server.get('/htmlwrapper', function(req, res) {
 //&begin [control]
 server.post('/control', function(req, res){
     console.log("Control: Enter");
+
+    var isError = true;
+    var resultMessage = "Error: Could not find the process"; // default message
+
     for (var i = 0; i < processes.length; i++)
     {
         if (processes[i].windowKey == req.body.windowKey)
@@ -85,22 +89,85 @@ server.post('/control', function(req, res){
             if (req.body.operation == "run")
             {
                 console.log("Control: Run");
+
                 var backendId = req.body.backend;
                 console.log("Backend: " + backendId);
                 if (processes[i].mode != "ig")
                 {
                     console.log("Error: Not compiled yet");
+                    resultMessage = "Error: The mode is not IG: the compilation is still running";
+                    isError = true;
+                    break;
                 }
                 else
                 {
+                    var found = false;
+                    var backend = null;
+                    var format = null;
+                    // looking for a backend
+
+                    for (var j = 0; j < backendConfig.backends.length; j++)
+                    {
+                        if (backendConfig.backends[j].id == backendId)
+                        {
+                            found = true;
+                            backend = backendConfig.backends[j]; 
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        console.log("Error: Backend was not found");
+                        resultMessage = "Error: Could not find the backend by its submitted id.";
+                        isError = true;
+                        break;
+                    }
+
+                    // looking for a format
+                    var found = false;
+
+                    for (var j = 0; j < formatConfig.formats.length; j++)
+                    {
+                        if (formatConfig.formats[j].id == backend.accepted_format)
+                        {
+                            format = formatConfig.formats[j];
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        console.log("Error: Required format was not found");
+                        resultMessage = "Error: Could not find the required file format.";
+                        isError = true;
+                        break;
+                    }
+
+                    console.log(backend.id + " ==> " + format.id);
+
                     processes[i].mode_completed = false;
 
 //                    processes[i].executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, processes[i]);
 //                    processes[i].pingTimeoutObject = setTimeout(pingTimeoutFunc, config.pingTimeout, processes[i]);
 
-                    var args = [processes[i].file];
+                    var fileAndPathReplacement = [
+                            {
+                                "needle": "$dirname$", 
+                                "replacement": __dirname + "/Backends"
+                            },
+                            {
+                                "needle": "$filepath$", 
+                                "replacement": processes[i].file + format.file_extension
+                            }
+                        ];
+
+                    var args = replaceTemplateList(backend.tool_args, fileAndPathReplacement);
+
+                    console.log(args);
                     
-                    processes[i].tool = spawn("claferIG", args);
+                    processes[i].tool = spawn(replaceTemplate(backend.tool, fileAndPathReplacement), args);
 
                     processes[i].tool.on('error', function (err){
                         console.log('ERROR: Cannot find Clafer Instance Generator (claferIG). Please check whether it is installed and accessible.');
@@ -153,6 +220,10 @@ server.post('/control', function(req, res){
                         }
 */                        
                     });
+
+                    resultMessage = "started";
+                    isError = false;
+
                 }
             }
             else if (req.body.operation == "stop")
@@ -161,22 +232,72 @@ server.post('/control', function(req, res){
                 processes[i].toKill = true;
                 processes[i].mode_completed = true;
                 processes[i].freshData += "\nManually Stopped\n";
+                resultMessage = "stopped";
+                isError = false;
 //                clearTimeout(processes[i].pingTimeoutObject);                
 //                clearTimeout(processes[i].executionTimeoutObject);
             }
-            else if (req.body.operation == "next")
-            {
-                console.log("Control: Next Instance");
-                processes[i].tool.stdin.write("\n"); 
-            }
-            else if (req.body.operation == "scope")
-            {
-                console.log("Control: Increase scope by " + req.body.increaseScopeBy);
-                processes[i].tool.stdin.write("i " + req.body.increaseScopeBy + "\n");
-            }
             else
             {
-                console.log("Control: Unknown command");
+                var parts = req.body.operation.split("-");
+                if (parts.length != 2)
+                {
+                    console.log('Control: Command does not follow pattern "backend-opreration": "' + req.body.operation + '"');
+                    resultMessage = "Error: Command does not follow the 'backend-operation' pattern.";
+                    isError = true;
+                }
+
+                var backendId = parts[0]; // it does not matter how to get backendid.
+                var operationId = parts[1];
+
+                var found = false;
+                var backend = null;
+                var operation = null;
+                // looking for a backend
+
+                for (var j = 0; j < backendConfig.backends.length; j++)
+                {
+                    if (backendConfig.backends[j].id == backendId)
+                    {
+                        found = true;
+                        backend = backendConfig.backends[j]; 
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    console.log("Error: Backend was not found");
+                    resultMessage = "Error: Could not find the backend specified in the command.";
+                    isError = true;
+                    break;
+                }
+
+                // looking for a format
+                var found = false;
+
+                for (var j = 0; j < backend.control_buttons.length; j++)
+                {
+                    if (backend.control_buttons[j].id == operationId)
+                    {
+                        operation = backend.control_buttons[j];
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    console.log("Error: Required operation was not found");
+                    resultMessage = "Error: Could not find the required operation.";
+                    break;
+                }
+                console.log(backend.id + " ==> " + operation.id);
+
+                processes[i].tool.stdin.write(operation.command);
+
+                resultMessage = "operation";
+                isError = false;
             }
           //&begin [executionTimeout, timeout]
             // resetting the execution timeout
@@ -191,9 +312,16 @@ server.post('/control', function(req, res){
         }
     }
 
-    res.writeHead(200, { "Content-Type": "application/json"});
-    res.end('{"message": "OK"}');
-
+    if (!isError)
+    {
+        res.writeHead(200, { "Content-Type": "text/html"});
+    }
+    else
+    {
+        res.writeHead(400, { "Content-Type": "text/html"});
+    }
+    
+    res.end(resultMessage);        
 });
 //&end [control]
 /*
@@ -455,7 +583,7 @@ server.post('/upload', function(req, res, next)
 
         console.log(fileTextContents);
 
-        fs.writeFile(uploadedFilePath, fileTextContents, function(err) {
+        fs.writeFile(uploadedFilePath + ".cfr", fileTextContents, function(err) {
             if(err) {
                 console.log(err);
             } else {
@@ -525,13 +653,15 @@ server.post('/upload', function(req, res, next)
             if (err) throw err;
             var dlDir = uploadedFilePath;
             uploadedFilePath += pathTokens[2];
-            fs.rename(oldPath, uploadedFilePath, function (err){
+            uploadedFilePath = uploadedFilePath.substring(0, uploadedFilePath.length - 4); // to remove the extention
+
+            fs.rename(oldPath, uploadedFilePath + ".cfr", function (err){
                 if (err) throw err;
                 console.log("Proceeding with " + uploadedFilePath);
                 
                 // read the contents of the uploaded file
-              //&begin [fileProcessing]
-                fs.readFile(uploadedFilePath, function (err, data) {
+				//&begin [fileProcessing]
+                fs.readFile(uploadedFilePath + ".cfr", function (err, data) {
 
                     var file_contents;
                     if(data)
@@ -540,7 +670,7 @@ server.post('/upload', function(req, res, next)
                     {
                         res.writeHead(500, { "Content-Type": "text/html"});
                         res.end("No data has been read");
-                        cleanupOldFiles(uploadedFilePath, dlDir);
+                        cleanupOldFiles(dlDir);
                         return;
                     }
                     
@@ -549,10 +679,10 @@ server.post('/upload', function(req, res, next)
                     var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, code: 0, killed:false, contents: file_contents, toKill: false};
 
                     // temporary
-                    var clafer_compiler_CHOCO  = spawn("clafer", ["--mode=choco", "--ss=none", uploadedFilePath]);
+                    var clafer_compiler_CHOCO  = spawn("clafer", ["--mode=choco", "--ss=none", uploadedFilePath + ".cfr"]);
                     // -------
 
-                    var clafer_compiler  = spawn("clafer", ["--mode=HTML", "--self-contained", "--add-comments", "--ss=none", uploadedFilePath]);
+                    var clafer_compiler  = spawn("clafer", ["--mode=HTML", "--self-contained", "--add-comments", "--ss=none", uploadedFilePath + ".cfr"]);
 //                    clafer_compiler.on('error', function (err){
 //                        console.log('ERROR: Cannot find Clafer Compiler (clafer). Please check whether it is installed and accessible.');
 //                        res.writeHead(400, { "Content-Type": "text/html"});
@@ -636,7 +766,7 @@ server.post('/upload', function(req, res, next)
                                 {
                                     if (item.shows_compilation_errors || (item.process.compiler_code == 0))
                                     {
-                                        fs.readFile(changeFileExt(uploadedFilePath, '.cfr', item.file_extension), function (err, file_contents) 
+                                        fs.readFile(uploadedFilePath + item.file_extension, function (err, file_contents) 
                                         {
                                             var obj = new Object();
                                             obj.id = item.id;
@@ -802,7 +932,7 @@ function finishCleanup(dir, results){
 	}
 }
 //&begin [cleanOldFiles] 
-function cleanupOldFiles(path, dir) {
+function cleanupOldFiles(dir) {
     console.log("Cleaning temporary files...");                    
 	//cleanup old files
 	fs.readdir(dir, function(err, files){
@@ -971,3 +1101,25 @@ function dependency_ok()
     }
 }
 //&end checkingDependencies
+function replaceTemplate(input_string, replacement_map)
+{
+    var result = input_string;
+
+    for (var j = 0; j < replacement_map.length; j++)
+    {
+        result = result.replace(replacement_map[j].needle, replacement_map[j].replacement);
+    }
+
+    return result;
+}
+
+function replaceTemplateList(input_list, replacement_map)
+{
+    var result = new Array();
+    for (var i = 0; i < input_list.length; i++)
+    {
+        result.push(replaceTemplate(input_list[i], replacement_map));
+    }
+    
+    return result;
+}                            
