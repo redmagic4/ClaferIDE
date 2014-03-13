@@ -30,7 +30,7 @@ ClaferIDE
         interactive
         polling
         timeout
-			pingTimeout
+			inactivityTimeout
 			executionTimeout
         cancellation
 	selectionOfExamples

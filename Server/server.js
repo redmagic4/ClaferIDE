@@ -522,10 +522,10 @@ server.post('/poll', function(req, res, next)
 
                         // if mode is completed, then the tool is not busy anymore, so now it's time to 
                         // set inactivity timeout
-
+                      //&begin [inactivityTimeout, timeout]
                         clearTimeout(processes[i].inactivityTimeoutObject);
                         processes[i].inactivityTimeoutObject = setTimeout(inactivityTimeoutFunc, config.inactivityTimeout, processes[i]);
-
+                      //&end [inactivityTimeout, timeout]
                     }	
                     else // still working
                     {
@@ -1084,6 +1084,7 @@ function pingTimeoutFunc(process)
     process.pingTimeout = true;
 }
 //&end [pingTimeout, timeout]
+//&begin [inactivityTimeout, timeout]
 function inactivityTimeoutFunc(process)
 {
     console.log("Error: Inactivity Timeout.");
@@ -1091,7 +1092,7 @@ function inactivityTimeoutFunc(process)
 //    process.code = 9004;
     process.inactivityTimeout = true;
 }
-
+//&end [inactivityTimeout, timeout]
 //&begin cleanOldFiles
 function finishCleanup(dir, results){
 	if (fs.existsSync(dir)){
