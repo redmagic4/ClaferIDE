@@ -210,15 +210,16 @@ server.post('/control', function(req, res){
 
                     processes[i].tool.on("close", function (code){
                         console.log("CLAFERIG: On Exit");
-/*
+
                         for (var i = 0; i<processes.length; i++){
 
                             if (processes[i].windowKey == req.body.windowKey)
                             {
-                                cleanupOldFiles(processes[i].file, processes[i].folder);
+//                                cleanupOldFiles(processes[i].file, processes[i].folder);
+                                processes[i].mode_completed = true;
                             }
                         }
-*/                        
+                        
                     });
 
                     resultMessage = "started";
@@ -231,7 +232,6 @@ server.post('/control', function(req, res){
                 console.log("Control: Stop");
                 processes[i].toKill = true;
                 processes[i].mode_completed = true;
-                processes[i].freshData += "\nManually Stopped\n";
                 resultMessage = "stopped";
                 isError = false;
 //                clearTimeout(processes[i].pingTimeoutObject);                
@@ -371,6 +371,7 @@ server.post('/poll', function(req, res, next)
                             var jsonObj = JSON.parse(processes[i].compiler_result);
                             jsonObj.compiled_formats = processes[i].compiled_formats;
                             jsonObj.model = processes[i].model;
+                            jsonObj.compiler_message = processes[i].compiler_message;
                             res.end(JSON.stringify(jsonObj));
 
 //                            if (processes[i].pingTimeoutObject)//&line [pingTimeout, timeout]
@@ -471,8 +472,9 @@ server.post('/poll', function(req, res, next)
 
         if (processes[i].toRemoveCompletely)
         {
+            cleanupOldFiles(processes[i].folder);            
 //            clearTimeout(processes[i].pingTimeoutObject);//&line [pingTimeout, timeout]
-//            clearTimeout(processes[i].executionTimeoutObject);     //&line [executionTimeout, timeout]                 
+//            clearTimeout(processes[i].executionTimeoutObject);           //&line [executionTimeout, timeout]          
             processes.splice(i, 1);
         }
         else
@@ -718,6 +720,7 @@ server.post('/upload', function(req, res, next)
                         freshError: ""};
 
                     process.compiled_formats = new Array();
+                    process.compiler_message = "";
 
                     if (loadExampleInEditor)
                         process.model = file_contents;
@@ -725,6 +728,26 @@ server.post('/upload', function(req, res, next)
                         process.model = "";                                   
 
                     processes.push(process);    
+
+                    clafer_compiler.stdout.on("data", function (data){
+                        for (var i = 0; i < processes.length; i++)
+                        {
+                            if (processes[i].windowKey == req.body.windowKey)
+                            {
+                                processes[i].compiler_message += data;
+                            }
+                        }
+                    });
+
+                    clafer_compiler.stderr.on("data", function (data){
+                        for (var i = 0; i<processes.length; i++)
+                        {
+                            if (processes[i].windowKey == req.body.windowKey)
+                            {
+                                processes[i].compiler_message += data;
+                            }
+                        }
+                    });
                     
                     clafer_compiler.on('exit', function (code)
                     {	
