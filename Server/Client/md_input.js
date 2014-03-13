@@ -80,7 +80,7 @@ Input.method("onInitRendered", function()
     this.editor.getSession().setMode("ace/mode/text");
     this.editor.setShowPrintMargin(false);
 	//&end [claferTextEditor]
-	$('#myform').submit();
+    // $('#myform').submit(); MOVED TO md_output.js    
 });
 /*
  * Cancel request
@@ -99,7 +99,11 @@ Input.method("cancelCall", function()
 Input.method("beginQuery", function(formData, jqForm, options) {
 	$("#load_area #myform").hide();
 	$("#load_area").append('<div id="preloader"><img id="preloader_img" src="/images/preloader.gif" alt="Loading..."/><span id="status_label">Loading and processing...</span><button id="cancel">Cancel</button></div>');	
-    $("#cancel").click(this.cancelCall.bind(this));//&line cancellation
+    $("#cancel").click(this.cancelCall.bind(this));//&line [cancellation]
+    this.host.findModule("mdControl").disableAll();
+
+    this.setClaferModelHTML('<div id="preloader_compiler"><img id="preloader_img" src="/images/preloader.gif" alt="Compiling..."/><span id="status_label">Compiling...</span></div>');
+
     return true; 
 });
 
@@ -161,6 +165,7 @@ Input.method("poll", function()
 });
 //&begin claferModel
 Input.method("setClaferModelHTML", function(html){
+    this.host.findModule("mdClaferModel").lastModel = this.host.findModule("mdClaferModel").model;
     this.host.findModule("mdClaferModel").model = html;
     var iframe = $("#model")[0];
     iframe.src = iframe.src; // reloads the window
@@ -172,7 +177,6 @@ Input.method("setEditorModel", function(claferText){
 //&end claferModel
 Input.method("fileSent", function(responseText, statusText, xhr, $form)  { 
     this.toCancel = false;
-    this.endQuery();
 
     if (responseText == "error")
     {
@@ -182,10 +186,16 @@ Input.method("fileSent", function(responseText, statusText, xhr, $form)  {
 
     if (responseText != "no clafer file submitted")
     {
+        $("#output").html($("#output").html() + "===============\n");
         var data = new Object();
         data.message = responseText;
         this.host.updateData(data);
         this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
+    }
+    else
+    {
+        this.endQuery(); // else enable the form anyways
+        this.setClaferModelHTML(this.host.findModule("mdClaferModel").lastModel);
     }
 });
 //&end polling
@@ -286,41 +296,26 @@ Input.method("processToolResult", function(result)
         return;
     }
 	//&end handleError
-//    var resultData = JSON.parse(result);
-//    alert(resultData);    
-    
-//    resultData.message = unescapeJSON(resultData.message);
-
-//    resultData.claferXML = resultData.claferXML;
-//    resultData.instances = resultData.instances;
-//    resultData.message = resultData.message;
-    
 
     if (result.html)
     {
         this.setClaferModelHTML(result.html);        
+        // when we receive first HTML, it means our model is compiled, and we show the input form again
+        this.endQuery();
     }
 
     if (result.model != "")
     {
-//        alert(result.model);        
         this.editor.getSession().setValue(result.model);
     }
 
+    if (result.message != "")
+    {
+        this.host.findModule("mdControl").enableAll();
+    }
 
-    $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n").replaceAll("\n", "<br>"));
-//    this.host.updateData(resultData);
 
-//    alert(result.message);
-/*
-    var data = new Object();
-    data.error = false;
-    data.output = result.message;
-    data.instancesXML = instancesXMLText;
-    data.claferXML = abstractXMLText;
-    
-    this.host.updateData(data);
-*/
+    $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n"));
 
 });
 //&end [instanceProcessing]

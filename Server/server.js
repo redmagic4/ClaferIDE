@@ -70,36 +70,22 @@ server.get('/', function(req, res) {
 server.get('/htmlwrapper', function(req, res) {
     res.sendfile("Client/compiler_html_wrapper.html");
 });
-//&begin [saveInstances]
-/*
- * Handle Clientside save requests
- */
-server.post('/', function(req, res, next) {
-	console.log("returning instances.cfr.data file");
-   	res.writeHead(200, { "Content-Type": "text/html",
-   						 "Content-Disposition": "attachment; filename=Instances.cfr.data"});
-	res.end(req.body.data);
-});
-	//&end [saveInstances]
 //&begin [control]
-server.get('/control', function(req, res){
+server.post('/control', function(req, res){
     console.log("Control: Enter");
-    for (var y = 0; y < processes.length; y++)
+    for (var i = 0; i < processes.length; i++)
     {
-        if (processes[y].windowKey == req.query.windowKey)
+        if (processes[i].windowKey == req.body.windowKey)
         {
-//            var d = new Date();
-//            processes[y].lastUsed = d;
-            var process = processes[y];
-            if (req.query.operation == "next")
+            if (req.body.operation == "next")
             {
                 console.log("Control: Next Instance");
-                process.tool.stdin.write("n\n"); 
+                processes[i].tool.stdin.write("\n"); 
             }
-            else if (req.query.operation == "scope")
+            else if (req.body.operation == "scope")
             {
-                console.log("Control: Increase scope by " + req.query.increaseScopeBy);
-                process.tool.stdin.write("i " + req.query.increaseScopeBy + "\n");
+                console.log("Control: Increase scope by " + req.body.increaseScopeBy);
+                processes[i].tool.stdin.write("i " + req.body.increaseScopeBy + "\n");
             }
             else
             {
@@ -107,10 +93,10 @@ server.get('/control', function(req, res){
             }
           //&begin [executionTimeout, timeout]
             // resetting the execution timeout
-            if (process.executionTimeoutObject)
+            if (processes[i].executionTimeoutObject)
             {
-                clearTimeout(process.executionTimeoutObject);
-                process.executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, process);
+                clearTimeout(processes[i].executionTimeoutObject);
+                processes[i].executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, processes[i]);
             }
           //&end [executionTimeout, timeout]
             break;
@@ -134,7 +120,7 @@ server.get('/control', function(req, res){
 server.post('/poll', function(req, res, next)
 {
     var found = false;
-    console.log("#Processes: " + processes.length);
+    console.log("Polling client " + req.body.windowKey + ". #Processes: " + processes.length);
     for (var i = 0; i < processes.length; i++)
     {
         if (processes[i].pingTimeout)
@@ -147,8 +133,7 @@ server.post('/poll', function(req, res, next)
             {
                 if (req.body.command == "ping") // normal ping
                 {                
-                    console.log("Ping...");
-                  //&begin [pingTimeout, timeout]  
+					//&begin [pingTimeout, timeout]  
                     clearTimeout(processes[i].pingTimeoutObject);
                     processes[i].pingTimeoutObject = setTimeout(function(process){
                         process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';

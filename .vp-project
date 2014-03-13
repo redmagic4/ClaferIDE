@@ -10,7 +10,6 @@ ClaferIDE
 		cleanOldFiles
 		checkingDependencies
 		urlUploading
-		saveInstances
     client
         jquery
         help_pages
