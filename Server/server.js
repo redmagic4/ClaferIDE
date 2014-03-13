@@ -1133,7 +1133,7 @@ function cleanupOldFiles(dir) {
 		}
 	});
 
-//&end [cleanOldFiles] 
+
 //done cleanup
 }
 
@@ -1144,7 +1144,7 @@ function deleteOld(path){
 		});
 	}
 }
-// &end cleanOldFiles
+//&end [cleanOldFiles] 
 function escapeJSON(unsafe) 
 {
     return unsafe.replace(/[\\]/g, '\\\\')
