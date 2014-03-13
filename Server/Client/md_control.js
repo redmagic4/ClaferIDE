@@ -25,6 +25,12 @@ function Control(host)
     this.id = "mdControl";
     this.title = "Control";
     
+    this.requestTimeout = 60000; // what is the timeout for response after sending a file
+    this.pollingTimeout = 60000;  // what is the timeout when polling
+    this.pollingDelay = 700;    // how often to send requests (poll) for updates
+    this.pollingTimeoutObject = null;
+    this.toCancel = false;
+
     this.width = (window.parent.innerWidth-30) / 4;
     this.height = 100;
     this.posx = (window.parent.innerWidth-30) * 3 / 4;
@@ -34,9 +40,9 @@ function Control(host)
 
 Control.method("getInitContent", function(){
 	var ret = '<form id="ControlForm" method="post" action="/control" style="display: block">';
-	ret += '<input type="hidden" id="ControlOp" name="operation" value="next">';
+	ret += '<input type="hidden" id="ControlOp" name="operation" value="">';
 
-    ret += '<span>Instance Generators:</span><select id="backend" name="backend" style="width: 288px;">';   
+    ret += '<span>Instance Generators:</span><select id="backend" name="backend">';   
     
     $.getJSON('/Backends/backends.json', 
         function(data)
@@ -64,10 +70,8 @@ Control.method("getInitContent", function(){
     ret += '</select>';
 
     ret += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';
-    ret += '<input type="hidden" id="iScopeBy" name="increaseScopeBy" value="1">';
-	ret += '<input type="button" class="inputNextButton" id="Next" value="Next Instance" disabled="disabled"><br>';
-    ret += '<input type="number" class="inputText" id="ScopeValue" placeholder="Increase Scope By" disabled="disabled">';
-	ret += '<input type="button" class="inputButton" id="Scope" value="Increase Scope" disabled="disabled"></form>';	
+	ret += '<input type="button" class="inputRunStopButton" id="RunStop" value="Run" disabled="disabled"/><br>';
+    ret += '<input type="button" class="inputNextButton" id="Next" value="Next Instance" disabled="disabled"/><br>';
 
     this.data = "";
     this.error = "";
@@ -78,15 +82,23 @@ Control.method("getInitContent", function(){
 
 Control.method("onInitRendered", function()
 {
-    $("#Next").click(function(){
-        $("#ControlOp").val("next");
-        $("#iScopeBy").val("0");
-        $("#ControlForm").submit();
+    $("#RunStop").click(function(){
+        if ($(this).val() == "Run")
+        {
+            $("#ControlOp").val("run");
+            $(this).val("Stop");
+            $("#ControlForm").submit();
+        }
+        else
+        {
+            $("#ControlOp").val("stop");
+            $(this).val("Run");
+            $("#ControlForm").submit();
+        }
     });
 
-    $("#Scope").click(function(){
-        $("#ControlOp").val("scope");
-        $("#iScopeBy").val($("#ScopeValue").val());
+    $("#Next").click(function(){
+        $("#ControlOp").val("next");
         $("#ControlForm").submit();
     });
 
@@ -97,16 +109,20 @@ Control.method("onInitRendered", function()
     $('#ControlForm').ajaxForm(options); 
 });
 
+Control.method("resetControls", function(){
+    $("#RunStop").removeAttr("disabled");
+    $("#RunStop").val("Run");
+});
+
 Control.method("enableAll", function(){
-    $("#Scope").removeAttr("disabled");
-    $("#ScopeValue").removeAttr("disabled");
     $("#Next").removeAttr("disabled");
+    $("#RunStop").removeAttr("disabled");
+    $("#RunStop").val("Stop");
 });
 
 Control.method("disableAll", function(){
-    $("#Scope").attr("disabled", "disabled");
-    $("#ScopeValue").attr("disabled", "disabled");
     $("#Next").attr("disabled", "disabled");
+    $("#RunStop").attr("disabled", "disabled");
 });
 
 Control.method("onDataLoaded", function(data){
@@ -118,9 +134,64 @@ Control.method("beginQuery", function(formData, jqForm, options){
 
 Control.method("showResponse", function(responseText, statusText, xhr, $form)
 {
+    this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay); // start polling
     $("#ControlForm").show();
 });
 
 Control.method("handleError", function(responseText, statusText, xhr, $form){
     $("#ControlForm").show();
+});
+
+
+Control.method("onPoll", function(responseObject)
+{
+//    console.log(responseObject);
+    this.processToolResult(responseObject);
+    
+    if (responseObject.completed)
+    {
+//        this.disableAll(); // if exited IG, then disable controls
+    }
+    else
+    {
+        if (responseObject.message.length >= 5 && responseObject.message.substring(0,5) == "Error")
+        {
+//            this.disableAll(); // if exited IG, then disable controls
+            // stop polling
+        }
+        else
+        {
+            this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
+        }
+    }
+});        
+
+Control.method("poll", function()
+{
+    var options = new Object();
+    options.url = "/poll";
+    options.type = "post";
+    options.timeout = this.pollingTimeout;
+    if (!this.toCancel)
+        options.data = {windowKey: this.host.key, command: "ping"};
+    else
+        options.data = {windowKey: this.host.key, command: "cancel"};
+    
+    options.success = this.onPoll.bind(this);
+    options.error = this.handleError.bind(this);
+
+    $.ajax(options);
+});
+
+
+Control.method("processToolResult", function(result)
+{
+    if (!result)
+    {
+        this.handleError(null, "empty_argument", null);
+        return;
+    }
+
+    $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n"));
+
 });

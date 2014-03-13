@@ -27,14 +27,13 @@ function Input(host)
     this.requestTimeout = 60000; // what is the timeout for response after sending a file &line [timeout]
     this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
     this.pollingDelay = 700;    // how often to send requests (poll) for updates &line [polling]
+    this.pollingTimeoutObject = null;//&line [polling, timeout]
+    this.toCancel = false;//&line cancellation
 
     this.width = (window.parent.innerWidth-30) / 2;
     this.height = window.parent.innerHeight-50;
     this.posx = 0;
     this.posy = 0;
-    
-    this.pollingTimeoutObject = null;//&line [polling, timeout]
-    this.toCancel = false;//&line cancellation
     
     this.host = host;
     this.serverAction = "/upload";
@@ -328,7 +327,7 @@ Input.method("processToolResult", function(result)
 
     if (result.message != "")
     {
-        this.host.findModule("mdControl").enableAll();
+        this.host.findModule("mdControl").resetControls();
     }
 
     $("#output").html($("#output").html() + result.message.replaceAll("claferIG> ", "ClaferIG>\n"));
