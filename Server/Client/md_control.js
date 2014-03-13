@@ -25,11 +25,11 @@ function Control(host)
     this.id = "mdControl";
     this.title = "Control";
     
-    this.requestTimeout = 60000; // what is the timeout for response after sending a file
-    this.pollingTimeout = 60000;  // what is the timeout when polling
-    this.pollingDelay = 700;    // how often to send requests (poll) for updates
-    this.pollingTimeoutObject = null;
-    this.toCancel = false;
+    this.requestTimeout = 60000; // what is the timeout for response after sending a file &line [timeout]
+    this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
+    this.pollingDelay = 700;    // how often to send requests (poll) for updates &line [polling]
+    this.pollingTimeoutObject = null;//&line [polling, timeout]
+    this.toCancel = false;//&line cancellation
 
     this.width = (window.parent.innerWidth-30) / 4;
     this.height = 100;
@@ -142,7 +142,7 @@ Control.method("handleError", function(responseText, statusText, xhr, $form){
     $("#ControlForm").show();
 });
 
-
+//&begin [polling]
 Control.method("onPoll", function(responseObject)
 {
 //    console.log(responseObject);
@@ -182,7 +182,7 @@ Control.method("poll", function()
 
     $.ajax(options);
 });
-
+//&end [polling]
 
 Control.method("processToolResult", function(result)
 {
