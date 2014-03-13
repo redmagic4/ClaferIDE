@@ -28,8 +28,8 @@ function Input(host)
     this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
     this.pollingDelay = 700;    // how often to send requests (poll) for updates &line [polling]
 
-    this.width = 640;
-    this.height = 600;
+    this.width = (window.parent.innerWidth-30) / 2;
+    this.height = window.parent.innerHeight-50;
     this.posx = 0;
     this.posy = 0;
     
@@ -42,6 +42,8 @@ function Input(host)
     this.dataFileChosen = false;
 
     this.editor = null;
+    this.editorWidth = ((window.parent.innerWidth-40) / 2) - 10;
+    this.editorHeight = window.parent.innerHeight-140;
 }
 
 Input.method("onDataLoaded", function(data){
@@ -76,8 +78,9 @@ Input.method("onInitRendered", function()
     this.editor = ace.edit("clafer_editor");
     this.editor.setTheme("ace/theme/monokai");
     this.editor.getSession().setMode("ace/mode/text");
-  //&end [claferTextEditor]
-//	$('#myform').submit(); moved submit out of here, because the backend list is not loaded yet
+    this.editor.setShowPrintMargin(false);
+	//&end [claferTextEditor]
+	$('#myform').submit();
 });
 /*
  * Cancel request
@@ -182,8 +185,6 @@ Input.method("fileSent", function(responseText, statusText, xhr, $form)  {
         var data = new Object();
         data.message = responseText;
         this.host.updateData(data);
-        if (this.pollingTimeoutObject)
-            clearTimeout(this.pollingTimeoutObject);
         this.pollingTimeoutObject = setTimeout(this.poll.bind(this), this.pollingDelay);
     }
 });
@@ -223,21 +224,28 @@ Input.method("handleError", function(response, statusText, xhr)  {
 	this.endQuery();
     
 });
-//&end [handleError]
+	//&end [handleError]
+Input.method("onSubmit", function(){
+    if (this.pollingTimeoutObject)
+        clearTimeout(this.pollingTimeoutObject);
+});
 //&begin selectionOfExamples
 Input.method("submitFileCall", function(){
 
     $("#exampleURL").val(null);
     $("#exampleFlag").val("0");
+    this.onSubmit();
 });
 
 Input.method("submitExampleCall", function(){
     $("#exampleFlag").val("1");
+    this.onSubmit();
 });
 
 Input.method("submitTextCall", function(){
     $("#claferText").val(this.editor.getValue());
     $("#exampleFlag").val("2");
+    this.onSubmit();
 });
 
 Input.method("exampleChange", function(){
@@ -367,7 +375,7 @@ Input.method("getInitContent", function()
     result += 'Or enter your model below: <input id="submitText" type="submit" value="Compile"/>';
     result += '<input id="claferText" name="claferText" type="hidden"/>';
 
-    result += '<div style="height:500px; width: 620px;" name="clafer_editor" id="clafer_editor">';
+    result += '<div style="height:' + this.editorHeight + 'px; width: ' + this.editorWidth + 'px;" name="clafer_editor" id="clafer_editor">';
     result += '</div>';
   //&end [claferTextEditor]
     result += '</form></div>';
