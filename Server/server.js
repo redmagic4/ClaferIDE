@@ -101,6 +101,8 @@ server.post('/control', function(req, res){
                 }
                 else
                 {
+                    clearTimeout(processes[i].inactivityTimeoutObject); // reset the inactivity timeout
+
                     var found = false;
                     var backend = null;
                     var format = null;
@@ -246,7 +248,7 @@ server.post('/control', function(req, res){
                 processes[i].mode_completed = true;
                 resultMessage = "stopped";
                 isError = false;
-                clearTimeout(processes[i].pingTimeoutObject);                
+//                clearTimeout(processes[i].pingTimeoutObject);                
             }
             //&begin [scopeInteraction]
             else if (req.body.operation == "setGlobalScope")
@@ -353,7 +355,7 @@ server.post('/control', function(req, res){
                 {
                     processes[i].producedScopes = true;
                 }
-                    
+
                 resultMessage = "individual_scope_set";
                 isError = false;
             }
@@ -463,6 +465,11 @@ server.post('/poll', function(req, res, next)
             processes[i].toRemoveCompletely = true;   
             console.log("pingTimeout");
         }
+        else if (processes[i].inactivityTimeout)
+        {
+            processes[i].toRemoveCompletely = true;   
+            console.log("inactivityTimeout");
+        }
         else
         {
             if (processes[i].windowKey == req.body.windowKey)
@@ -470,7 +477,6 @@ server.post('/poll', function(req, res, next)
                 found = true;
                 if (req.body.command == "ping") // normal ping
                 {                
-
                     clearTimeout(processes[i].pingTimeoutObject);//&line [timeout]
 
                     if (processes[i].mode_completed) // the execution of the current mode is completed
@@ -513,6 +519,13 @@ server.post('/poll', function(req, res, next)
                             jsonObj.completed = true;
                             res.end(JSON.stringify(jsonObj));
                         }
+
+                        // if mode is completed, then the tool is not busy anymore, so now it's time to 
+                        // set inactivity timeout
+
+                        clearTimeout(processes[i].inactivityTimeoutObject);
+                        processes[i].inactivityTimeoutObject = setTimeout(inactivityTimeoutFunc, config.inactivityTimeout, processes[i]);
+
                     }	
                     else // still working
                     {
@@ -527,7 +540,8 @@ server.post('/poll', function(req, res, next)
                         {
                             if (!processes[i].producedScopes)
                             {
-                                fs.readFile(processes[i].file + ".scopes.json", function (err, data) {
+                                var scopesFileName = processes[i].file + ".scopes.json";
+                                fs.readFile(scopesFileName, function (err, data) {
                                     if (!err)
                                     {
                                         for (var i = 0; i < processes.length; i++)
@@ -538,6 +552,11 @@ server.post('/poll', function(req, res, next)
                                                 processes[i].producedScopes = true;                                    
                                             }
                                         }
+
+                                        // removing the file from the system. 
+                                        fs.unlink(scopesFileName, function (err){
+                                            // nothing
+                                        });
                                     }
                                 });
                             }
@@ -573,6 +592,11 @@ server.post('/poll', function(req, res, next)
                 {
                     processes[i].toKill = true;
                     clearTimeout(processes[i].pingTimeoutObject);                
+
+                    // starting inactivity timer
+                    clearTimeout(processes[i].inactivityTimeoutObject);
+                    processes[i].inactivityTimeoutObject = setTimeout(inactivityTimeoutFunc, config.inactivityTimeout, processes[i]);
+
                     res.writeHead(200, { "Content-Type": "application/json"});
 
                     var jsonObj = new Object();
@@ -1058,9 +1082,16 @@ function pingTimeoutFunc(process)
     process.result = '{"message": "' + escapeJSON('Error: Ping Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.pingTimeout + ' millisecond(s).') + '"}';
 //    process.code = 9004;
     process.pingTimeout = true;
-    process.toKill = true;
 }
 //&end [pingTimeout, timeout]
+function inactivityTimeoutFunc(process)
+{
+    console.log("Error: Inactivity Timeout.");
+    process.result = '{"message": "' + escapeJSON('Error: Inactivity Timeout. Please consider increasing timeout values in the "config.json" file. Currently it equals ' + config.inactivityTimeout + ' millisecond(s).') + '"}';
+//    process.code = 9004;
+    process.inactivityTimeout = true;
+}
+
 //&begin cleanOldFiles
 function finishCleanup(dir, results){
 	if (fs.existsSync(dir)){
