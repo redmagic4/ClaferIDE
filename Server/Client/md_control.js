@@ -23,7 +23,7 @@ SOFTWARE.
 function Control(host)
 { 
     this.id = "mdControl";
-    this.title = "Control";
+    this.title = "Instance Generator";
     
     this.requestTimeout = 60000; // what is the timeout for response after sending a file &line [timeout]
     this.pollingTimeout = 60000;  // what is the timeout when polling &line [polling, timeout]
@@ -304,7 +304,10 @@ Control.method("processToolResult", function(result)
         return;
     }
 
-    this.host.print(result.message);
+    if (result.message != "")
+    {
+        this.host.print(result.message);
+    }
 
 });
 
@@ -315,7 +318,4 @@ Control.method("onBackendChange", function()
     });
 
     $("#backendButtons").children("#" + $( "#backend option:selected" ).val() + "_buttons")[0].style.display = "block";
-});
-
-Control.method("onDataLoaded", function(data){
 });
