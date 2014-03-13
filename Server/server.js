@@ -219,6 +219,21 @@ server.post('/control', function(req, res){
                         
                     });
 
+
+                    // if the backend supports production of the scope file, then send this command
+                    // the command will be handled after the initial processing in any case
+
+
+                    if (backend.scope_options.clafer_scope_list)
+                    {
+                        processes[i].tool.stdin.write(backend.scope_options.clafer_scope_list.command);
+                        processes[i].producedScopes = false;
+                    }
+                    else
+                    {
+                        processes[i].producedScopes = true;
+                    }
+
                     resultMessage = "started";
                     isError = false;
 
@@ -272,6 +287,16 @@ server.post('/control', function(req, res){
 
                 var command = replaceTemplate(backend.scope_options.global_scope.command, replacements);
                 processes[i].tool.stdin.write(command);
+                    
+                if (backend.scope_options.clafer_scope_list)
+                {
+                    processes[i].tool.stdin.write(backend.scope_options.clafer_scope_list.command);
+                    processes[i].producedScopes = false;
+                }
+                else
+                {
+                    processes[i].producedScopes = true;
+                }
 
                 resultMessage = "global_scope_set";
                 isError = false;
@@ -318,7 +343,17 @@ server.post('/control', function(req, res){
 
                 var command = replaceTemplate(backend.scope_options.individual_scope.command, replacements);
                 processes[i].tool.stdin.write(command);
-
+                    
+                if (backend.scope_options.clafer_scope_list)
+                {
+                    processes[i].tool.stdin.write(backend.scope_options.clafer_scope_list.command);
+                    processes[i].producedScopes = false;
+                }
+                else
+                {
+                    processes[i].producedScopes = true;
+                }
+                    
                 resultMessage = "individual_scope_set";
                 isError = false;
             }
@@ -446,6 +481,7 @@ server.post('/poll', function(req, res, next)
                             res.writeHead(200, { "Content-Type": "application/json"});
                             var jsonObj = JSON.parse(processes[i].compiler_result);
                             jsonObj.compiled_formats = processes[i].compiled_formats;
+                            jsonObj.scopes = "";
                             jsonObj.model = processes[i].model;
                             jsonObj.compiler_message = processes[i].compiler_message;
                             res.end(JSON.stringify(jsonObj));
@@ -473,6 +509,7 @@ server.post('/poll', function(req, res, next)
 
                             var jsonObj = new Object();
                             jsonObj.message = currentResult;
+                            jsonObj.scopes = "";
                             jsonObj.completed = true;
                             res.end(JSON.stringify(jsonObj));
                         }
@@ -488,6 +525,22 @@ server.post('/poll', function(req, res, next)
                         }
                         else
                         {
+                            if (!processes[i].producedScopes)
+                            {
+                                fs.readFile(processes[i].file + ".scopes.json", function (err, data) {
+                                    if (!err)
+                                    {
+                                        for (var i = 0; i < processes.length; i++)
+                                        {
+                                            if (processes[i].windowKey == req.body.windowKey)
+                                            {
+                                                processes[i].scopes = data.toString();    
+                                                processes[i].producedScopes = true;                                    
+                                            }
+                                        }
+                                    }
+                                });
+                            }
 
                             var currentResult = "";
 
@@ -507,6 +560,10 @@ server.post('/poll', function(req, res, next)
 
                             var jsonObj = new Object();
                             jsonObj.message = currentResult;
+                            jsonObj.scopes = processes[i].scopes;
+
+                            processes[i].scopes = "";
+
                             jsonObj.completed = false;
                             res.end(JSON.stringify(jsonObj));
                         }
@@ -520,6 +577,7 @@ server.post('/poll', function(req, res, next)
 
                     var jsonObj = new Object();
                     jsonObj.message = "Cancelled";
+                    jsonObj.scopes = "";
                     jsonObj.compiler_message = "Cancelled compilation";
                     jsonObj.completed = true;
                     res.end(JSON.stringify(jsonObj));
@@ -753,7 +811,7 @@ server.post('/upload', function(req, res, next)
                     
                     console.log("Compiling...");
 
-                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, killed:false, contents: file_contents, toKill: false};
+//                    var process = { windowKey: key, tool: null, folder: dlDir, path: uploadedFilePath, completed: false, killed:false, contents: file_contents, toKill: false};
 
 //                    clafer_compiler.on('error', function (err){
 //                        console.log('ERROR: Cannot find Clafer Compiler (clafer). Please check whether it is installed and accessible.');
@@ -782,6 +840,7 @@ server.post('/upload', function(req, res, next)
                         toRemoveCompletely: false, 
                         tool: null, 
                         freshData: "", 
+                        scopes: "",
                         folder: dlDir, 
                         clafer_compiler: null,
                         file: uploadedFilePath, 
@@ -1081,7 +1140,7 @@ function killProcessTree(process)
     if (process.tool)
     {
         var pid = process.tool.pid;
-        process.tool.removeAllListeners("close");
+        process.tool.removeAllListeners();
         process.tool = null;
         console.log("Killing the backend tree with Parent PID = " + pid);
     
@@ -1100,7 +1159,7 @@ function killProcessTree(process)
     if (process.clafer_compiler)
     {
         var pid = process.clafer_compiler.pid;
-        process.clafer_compiler.removeAllListeners("close");
+        process.clafer_compiler.removeAllListeners();
         process.clafer_compiler = null;
         console.log("Killing the compiler tree with Parent PID = " + pid);
     
