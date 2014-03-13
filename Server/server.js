@@ -511,7 +511,7 @@ server.post('/poll', function(req, res, next)
                             res.end(JSON.stringify(jsonObj));
                         }
                     }
-                }//&begin cancellation
+                }//&begin [cancellation]
                 else // if it is cancel
                 {
                     processes[i].toKill = true;
@@ -525,7 +525,7 @@ server.post('/poll', function(req, res, next)
                     res.end(JSON.stringify(jsonObj));
 
                     console.log("Cancelled: " + processes[i].toKill);
-               }
+               }//&end [cancellation]
                break;
             }
         }    
