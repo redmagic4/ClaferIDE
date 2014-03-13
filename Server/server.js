@@ -105,14 +105,14 @@ server.get('/control', function(req, res){
             {
                 console.log("Control: Unknown command");
             }
-
+          //&begin [executionTimeout, timeout]
             // resetting the execution timeout
             if (process.executionTimeoutObject)
             {
                 clearTimeout(process.executionTimeoutObject);
                 process.executionTimeoutObject = setTimeout(executionTimeoutFunc, config.executionTimeout, process);
             }
-
+          //&end [executionTimeout, timeout]
             break;
 
         }
