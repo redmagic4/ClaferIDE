@@ -80,6 +80,57 @@ server.get('/htmlwrapper', fileMiddleware, function(req, res) {
     res.sendfile("Client/compiler_html_wrapper.html");
 });
 
+//------------------- save format request --------------------------
+server.get('/saveformat', fileMiddleware, function(req, res) {
+    
+    if (!req.query.windowKey)
+        return;
+
+    logSpecific("Save format request", req.query.windowKey);
+
+    var errorMessage = "process_not_found"; // default message
+
+    for (var i = 0; i < processes.length; i++)
+    {
+        if (processes[i].windowKey == req.query.windowKey)
+        {
+            var formatId = req.query.fileid;
+            var found = false;
+            var result = null;
+            var suffix = "";
+            // looking for a backend
+
+            for (var j = 0; j < processes[i].compiled_formats.length; j++)
+            {
+                if (processes[i].compiled_formats[j].id == formatId)
+                {
+                    found = true;
+                    result = processes[i].compiled_formats[j].result;
+                    suffix = processes[i].compiled_formats[j].fileSuffix;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                logSpecific("Error: Format was not found within the process", req.query.windowKey);
+                errorMessage = "Error: Could not find the format within a process data by its submitted id: " + formatId;
+                break;
+            }
+
+        
+            res.writeHead(200, { "Content-Type": "text/html",
+                                 "Content-Disposition": "attachment; filename=compiled" + suffix});
+            res.end(result);
+
+            return;
+        }
+    }
+
+    res.writeHead(400, { "Content-Type": "text/html"});    
+    res.end(errorMessage);        
+});
+
 //-------------------------------------------------
 //  Command Requests
 //-------------------------------------------------
@@ -736,8 +787,12 @@ server.post('/upload', commandMiddleware, function(req, res, next)
                         ss = "--ss=full";
                     }
 
-                    var genericArgs = [ss, "-k", uploadedFilePath + ".cfr"];
+                    var specifiedArgs = filterArgs(req.body.args);
+
+                    var genericArgs = [ss, uploadedFilePath + ".cfr"];
                     var formatModeArgs = [];
+
+                    process.compiler_args = genericArgs.concat(specifiedArgs).join(" ").replace(uploadedFilePath, "file") + " {mode args}";
 
                     for (var i = 1; i < formatConfig.formats.length; i++)
                         // we skip the default source .CFR format, since it's already there
@@ -747,13 +802,9 @@ server.post('/upload', commandMiddleware, function(req, res, next)
                         formatModeArgs = formatModeArgs.concat(formatConfig.formats[i].compiler_args);
                     }
 
-                    var finalArgs = formatModeArgs.concat(genericArgs);
+                    var finalArgs = genericArgs.concat(specifiedArgs).concat(formatModeArgs);
 
-                    // temporary
                     process.clafer_compiler = spawn("clafer", finalArgs);
-                    // -------
-
-//                    clafer_compiler_HTML  = spawn("clafer", ["-m", "HTML", "--self-contained", "-k", "--add-comments", ss, uploadedFilePath + ".cfr"]);
 
                     process.compiled_formats = new Array();
                     process.compiler_message = "";
@@ -831,7 +882,7 @@ server.post('/upload', commandMiddleware, function(req, res, next)
                                         {
                                             var obj = new Object();
                                             obj.id = item.id;
-//                                            obj.filePath = uploadedFilePath + item.file_suffix;
+                                            obj.fileSuffix = item.file_suffix;
                                             obj.displayElement = item.display_element;
 											//&begin [compileErrorHandling]
                                             if (err) // error reading HTML, maybe it is not really present, means a fatal compilation error
@@ -916,6 +967,8 @@ server.post('/poll', pollingMiddleware, function(req, res, next)
                         res.writeHead(200, { "Content-Type": "application/json"});
                         var jsonObj = JSON.parse(processes[i].compiler_result);
                         jsonObj.compiled_formats = processes[i].compiled_formats;
+                        jsonObj.args = processes[i].compiler_args;
+                        processes[i].compiler_args = "";
                         jsonObj.scopes = "";
                         jsonObj.model = processes[i].model;
                         jsonObj.compiler_message = processes[i].compiler_message;
@@ -962,8 +1015,11 @@ server.post('/poll', pollingMiddleware, function(req, res, next)
 
                     if (processes[i].mode == "compiler") // if the mode completed is compilation
                     {
-                        res.writeHead(200, { "Content-Type": "application/json"});
-                        res.end('{"message": "Working"}');
+                        var jsonObj = new Object();
+                        jsonObj.message = "Working";
+                        jsonObj.args = processes[i].compiler_args;
+                        processes[i].compiler_args = "";
+                        res.end(JSON.stringify(jsonObj));
                     }
                     else
                     {
@@ -1249,6 +1305,27 @@ function replaceTemplateList(input_list, replacement_map)
     return result;
 }                            
 
+// filter input command line arguments for safety purposes
+function filterArgs(argString)
+{
+    var args = argString.split(" ");
+    var resultArgs = new Array();
+    for (var i = 0; i < args.length; i++)
+    {
+        var arg = args[i].trim();
+
+        if (arg.length == 0)
+            continue;
+
+        if (!arg.match(/-[A-Za-z-]+/))
+            continue;
+
+        resultArgs.push(arg);
+    }
+
+    return resultArgs;
+}
+
 //================================================================
 // Initialization Code
 //================================================================
@@ -1307,12 +1384,15 @@ function dependency_ok()
 	//&end checkingDependencies
 function logSpecific(message, key)
 {
+    var date = new Date();
+    var d = date.toUTCString();
+
     if (key != null)
     {
-        console.log(key + " | " + message);
+        console.log(d + " | " + key + " | " + message);
     }
     else 
-        console.log("GLOBAL" + " | " + message);
+        console.log(d + " | " + "GLOBAL" + " | " + message);
 }
 
 function logNormal(message)
