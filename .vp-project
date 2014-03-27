@@ -24,6 +24,7 @@ ClaferIDE
 			control
 				scopeInteraction
 			output
+		syntaxHighlighting
         icons
 		helpSystem
 	processManagement
