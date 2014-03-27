@@ -30,8 +30,8 @@ function Input(host)
     this.pollingTimeoutObject = null;//&line [polling, timeout]
     this.toCancel = false;//&line cancellation
 
-    this.width = (window.parent.innerWidth-30) * 0.38;
-    this.height = window.parent.innerHeight-50;
+    this.width = (window.parent.innerWidth-40) * 0.38;
+    this.height = window.parent.innerHeight-60;
     this.posx = 0;
     this.posy = 0;
     
@@ -41,9 +41,17 @@ function Input(host)
     this.dataFileChosen = false;
 
     this.editor = null;
-    this.editorWidth =this.width - 5;
+    this.editorWidth = this.width - 5;
     this.editorHeight = this.height - 83;
+
+    this.resize = this.onResize.bind(this);
 }
+
+//Input.method("recalculateEditorSize", function()
+//{
+//    this.editorWidth = this.window.width - 5;
+//    this.editorHeight = this.window.height - 83;
+//});
 
 Input.method("onInitRendered", function()
 {
@@ -113,8 +121,6 @@ Input.method("beginQuery", function(formData, jqForm, options) {
 	$("#load_area").append('<div id="preloader"><img id="preloader_img" src="/images/preloader.gif" alt="Loading..."/><span id="status_label">Loading and processing...</span><button id="cancel">Cancel</button></div>');	
     $("#cancel").click(this.cancelCall.bind(this));//&line [cancellation]
     this.host.findModule("mdControl").disableAll();
-
-//    this.setClaferModelHTML('<div id="preloader_compiler"><img id="preloader_img" src="/images/preloader.gif" alt="Compiling..."/><span id="status_label">Compiling...</span></div>');
 
     return true; 
 });
@@ -310,21 +316,21 @@ Input.method("inputChange", function(){
 
 Input.method("getInitContent", function()
 {
-    result = '<div id = "load_area">';
-    result += '<form id="myform" action="' + this.serverAction + '" method="post" enctype="multipart/form-data" style="display: block;">';
+    result = '<div id = "load_area" style="height:100%;overflow:hidden">';
+    result += '<form id="myform" action="' + this.serverAction + '" method="post" enctype="multipart/form-data" style="display: block; height:100%">';
 
     result += '<input type="hidden" name="claferFileURL" id="claferFileURL" value="' + this.host.claferFileURL + '">';
     result += '<input type="hidden" name="exampleFlag" id="exampleFlag" value="0">';
     result += '<input type="hidden" id="windowKey" name="windowKey" value="' + this.host.key + '">';//&line windowKey
     result += '<input id="claferText" name="claferText" type="hidden"/>';
 
-    result += '<table width="100%" cellspacing="0" cellpadding="0">';    
-    result += '<tr>';
+    result += '<table width="100%" height="100%" cellspacing="0" cellpadding="0">';    
+    result += '<tr height="1em">';
     result += '<td><input type="file" size="20" name="claferFile" id="claferFile" title="If you want to upload your clafer file, select one here "/></td>';
-    result += '<td><input id="submitFile" type="submit" value="Compile" title="Compile the chosen file with Clafer Compiler"/></td>';
-  //&begin selectionOfExamples
+    result += '<td width="60"><input id="submitFile" type="submit" value="Compile" title="Compile the chosen file with Clafer Compiler"/></td>';
+	//&begin selectionOfExamples
     result += '<td width="160"><input id="loadExampleInEditor" type="checkbox" name="loadExampleInEditor" value="unchecked" title="If checked, the editor window below will be loaded with a file or an example submitted">Load into editor</input></td>';
-    result += '</tr><tr>';  
+    result += '</tr><tr height="1em">';
     result += '<td><select id="exampleURL" style="width:240px" name="exampleURL" title="If you want, you can choose to compile an example clafer model from the list">';   
     
     result += '</select></td>';
@@ -338,24 +344,24 @@ Input.method("getInitContent", function()
 
     result += '</select></td>';
 
-    result += '</tr><tr>';
+    result += '</tr><tr height="1em">';
     result += '<td style="border-top: 2px groove threedface;">';
     //&begin [claferTextEditor]
     result += 'Or enter your model:</td>';
-    result += '<td style="border-top: 2px groove threedface; "><input id="submitText" type="submit" value="Compile" title="Compile the contents of the editor below using Clafer Compiler"/></span></td>';
+    result += '<td style="border-top: 2px groove threedface; "><input id="submitText" type="submit" value="Compile" title="Compile the contents of the editor below using Clafer Compiler"/></td>';
 
 //    result += '<span class="save_button" id="saveSourceButton"></span>';
 
-    result += '<td style="padding: 0px 2px 0px 2px;border-left: 2px groove threedface">Flags: <input id="args" type="text" style="width:100px;" name="args" value="-k" title="You can specify any additional compilation flags supported by the compiler"></input></td>';
+    result += '<td style="padding: 0px 2px 0px 2px;border-left: 2px groove threedface">Flags: <input id="args" type="text" style="width:90px;" name="args" value="-k" title="You can specify any additional compilation flags supported by the compiler"></input></td>';
 
 //    result += '</div>';
-    result += '</tr><tr><td colspan = "3">';
-    result += '<div style="height: 1px; border-bottom: 2px groove threedface"></div>';
+    result += '</tr><tr height="100%"><td style="height:100%;border-top: 2px groove threedface" colspan = "3"><div id="clafer_editor" style="height:100%">';
+//    result += '<div style="height: 1px; border-bottom: 2px groove threedface"></div>';
 
-    result += '<div style="height:' + this.editorHeight + 'px; width: ' + this.editorWidth + 'px;" name="clafer_editor" id="clafer_editor">';
-    result += '</div>';
-  //&end [claferTextEditor]
-    result += '</td></tr></table>';
+//    result += '<div name="clafer_editor" style="height:400px" id="clafer_editor">';
+//    result += '</div>';
+	//&end [claferTextEditor]
+    result += '</div></td></tr></table>';
 
     result += '</form>';
 
@@ -391,11 +397,13 @@ Input.method("getInitContent", function()
             
         });
 
-
     return result;
 
 });
 
+Input.method("onResize", function() {
+    this.editor.resize();
+});
 
 function unescapeJSON(escaped) 
 {
