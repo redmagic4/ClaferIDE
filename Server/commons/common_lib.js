@@ -4,8 +4,9 @@
 var fs = require("fs");
 var http = require("http");
 var core = require("./core_lib");
-var formatConfig = require('./Formats/formats.json');
+var formatConfig = require('./../Formats/formats.json');
 var spawn = require('child_process').spawn;    
+var ROOT = __dirname.substring(0, __dirname.length - "/commons".length);
 //&begin fileUpload
 var handleUploads = function(req, res, next, finalCallback)
 	{
@@ -86,7 +87,7 @@ var handleUploads = function(req, res, next, finalCallback)
 	        var i = 0;
 	        uploadedFilePath = req.body.windowKey;
 	        uploadedFilePath = uploadedFilePath.replace(/[\/\\]/g, "");
-	        uploadedFilePath = __dirname + "/uploads/" + uploadedFilePath;
+	        uploadedFilePath = ROOT + "/uploads/" + uploadedFilePath;
 	        while(fs.existsSync(uploadedFilePath + i.toString() + ".cfr")){
 	            i = i+1;
 	        }
@@ -114,7 +115,7 @@ var handleUploads = function(req, res, next, finalCallback)
 	        var i = 0;
 	        uploadedFilePath = req.body.windowKey;
 	        uploadedFilePath = uploadedFilePath.replace(/[\/\\]/g, "");
-	        uploadedFilePath = __dirname + "/uploads/" + uploadedFilePath;
+	        uploadedFilePath = ROOT + "/uploads/" + uploadedFilePath;
 	        while(fs.existsSync(uploadedFilePath + i.toString() + ".cfr")){
 	            i = i+1;
 	        }
@@ -159,7 +160,7 @@ var moveUploadedFile = function (req, res, next, uploadedFilePath, urlFile, call
 	    
 	    core.logSpecific('Path tokens: "' + pathTokens.join('; ') + '"', req.body.windowKey);
 	    var oldPath = uploadedFilePath;
-	    uploadedFilePath = __dirname + "/" + pathTokens[1] + "/" + i + "tempfolder/"; // this slash will work anyways
+	    uploadedFilePath = ROOT + "/" + pathTokens[1] + "/" + i + "tempfolder/"; // this slash will work anyways
 	    fs.mkdir(uploadedFilePath, function (err){
 	        if (err) throw err;
 	        var uploadedFileDir = uploadedFilePath;
