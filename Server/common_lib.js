@@ -6,7 +6,7 @@ var http = require("http");
 var core = require("./core_lib");
 var formatConfig = require('./Formats/formats.json');
 var spawn = require('child_process').spawn;    
-
+//&begin fileUpload
 var handleUploads = function(req, res, next, finalCallback)
 	{
 
@@ -174,7 +174,7 @@ var moveUploadedFile = function (req, res, next, uploadedFilePath, urlFile, call
 	    });
 	};
 
-
+//&begin [fileProcessing]
 var runClaferCompiler = function(key, specifiedArgs, genericArgs, onComplete)
 {
     var formatModeArgs = [];
@@ -301,6 +301,7 @@ var runClaferCompiler = function(key, specifiedArgs, genericArgs, onComplete)
     });
 
 };
-
+//&end [fileProcessing]
+//&end fileUpload
 module.exports.handleUploads = handleUploads;
 module.exports.runClaferCompiler = runClaferCompiler;
