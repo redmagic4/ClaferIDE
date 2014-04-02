@@ -415,6 +415,45 @@ server.post('/control', commandMiddleware, function(req, res)
         res.writeHead(200, { "Content-Type": "text/html"});
         res.end("int_scope_set");
     }
+    else if (req.body.operation == "setBitwidth") // "Set Bitwidth" operation
+    {
+        core.logSpecific("Control: setBitwidth", req.body.windowKey);
+
+        // looking for a backend
+        var backend = core.getBackend(req.body.backend);
+        if (!backend)
+        {
+            core.logSpecific("Error: Backend was not found", req.body.windowKey);
+            res.writeHead(400, { "Content-Type": "text/html"});
+            res.end("Error: Could not find the backend by its submitted id.");
+            return;
+        }
+
+        core.logSpecific(backend.id + " " + req.body.operation_arg1, req.body.windowKey);
+
+        var replacements = [
+                {
+                    "needle": "$value$", 
+                    "replacement": req.body.operation_arg1
+                }
+            ];
+
+        var command = core.replaceTemplate(backend.scope_options.bitwidth.command, replacements);
+        process.tool.stdin.write(command);
+            
+        if (backend.scope_options.clafer_scope_list)
+        {
+            process.tool.stdin.write(backend.scope_options.clafer_scope_list.command);
+            process.producedScopes = false;
+        }
+        else
+        {
+            process.producedScopes = true;
+        }
+
+        res.writeHead(200, { "Content-Type": "text/html"});
+        res.end("bitwidth_set");
+    }
     else // else look for custom commands defined by backend config
     {
         var parts = req.body.operation.split("-");
@@ -744,11 +783,24 @@ server.use(function(req, res, next)
 //================================================================
 
 core.logNormal('===============================');
-core.logNormal('| ClaferIDE v0.3.5.??-??-???? |');
+core.logNormal('| ' + core.getTitle() + ' ' + core.getVersion() + ' |');
 core.logNormal('===============================');
 
 core.addDependency("clafer", ["-V"], "Clafer Compiler");
 core.addDependency("java", ["-version"], "Java");
+
+var dirReplacementMap = [
+        {
+            "needle": "$dirname$", 
+            "replacement": __dirname + "/Backends"
+        }
+    ];
+
+for (var i = 0; i < backendConfig.backends.length; i++)
+{
+    core.addDependency(backendConfig.backends[i].tool, core.replaceTemplateList(backendConfig.backends[i].tool_version_args, dirReplacementMap), backendConfig.backends[i].label);
+}
+
 core.runWithDependencyCheck(function(){
     server.listen(port);
     core.logNormal('======================================');
