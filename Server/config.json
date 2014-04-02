@@ -4,7 +4,7 @@
 	"inactivityTimeout": "600000",//&line [timeout, inactivityTimeout]
 	"pingTimeout": "10000",//&line [timeout, pingTimeout]
 	"cleaningTimeout": "5000",
-	"commandLimitingRate": {"interval": "1", "limit":"2"},
+	"commandLimitingRate": {"interval": "10", "limit":"6000"},
 	"pollingLimitingRate": {"interval": "1", "limit":"4"},
 	"fileRequestLimitingRate": {"interval": "1", "limit":"10"}
 }
