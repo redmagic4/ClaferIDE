@@ -112,7 +112,7 @@ function getConfiguration()
     	{
     		"layout": {
     			"width": (window.parent.innerWidth-40) * (0.24),
-    			"height": window.parent.innerHeight - 60 - 245,
+    			"height": window.parent.innerHeight - 60 - 255,
     			"posx": (window.parent.innerWidth-40) * 0.38,
     			"posy": 0
     		},
@@ -126,9 +126,9 @@ function getConfiguration()
     {
     		"layout": {
 			    "width": (window.parent.innerWidth-40) * (0.24),
-			    "height": 200,
+			    "height": 210,
 			    "posx": (window.parent.innerWidth-40) * 0.38,
-			    "posy": window.parent.innerHeight - 60 - 200
+			    "posy": window.parent.innerHeight - 60 - 210
     		},
 	    	"title": "Instance Generator",
     		"onError": function(module, statusText, response, xhr)
@@ -179,20 +179,32 @@ function getConfiguration()
 			"onIntScopeSet": function (module)
 			{
 		        module.host.print("ClaferIDE> Setting integer bounds...\n");
-		    },		    
+		    },	
+		    /*	    
 			"onBitwidthSet": function (module)
 			{
 		        module.host.print("ClaferIDE> Setting the bitwidth...\n");
-		    },		    
+		    },
+		    */		    
     		"onPoll" : function(module, responseObject){
 		        if (responseObject.message != "")
 				{
-				    module.host.print(responseObject.message);
+				    module.host.print(filterOutput(module.host, responseObject.message));
 				}
+
+				if (responseObject.ig_args != "")
+				{
+				    module.host.print("ClaferIDE> " + responseObject.ig_args + "\n");
+				}				
     		},
     		"onCompleted": function (module, responseObject){
     			module.host.print("ClaferIDE> The instance generator is exited.\n");
-    		}		    
+    		},
+            "onBackendChange": function (module, newBackend)
+            {
+				module.host.storage.backend = newBackend;            	
+			    module.host.findModule("mdControl").disableRuntimeControls();
+            }    				    
     	}});
 
     modules.push({"name": "Output", "configuration": 
@@ -219,4 +231,13 @@ function getConfiguration()
 	};
 
     return {"modules": modules, "settings": settings};
+}
+
+function filterOutput(host, output)
+{
+	var title = host.storage.backend.presentation_specifics.prompt_title;
+	if (title != "")
+		return output.replaceAll(title, "");
+	
+	return output;
 }
