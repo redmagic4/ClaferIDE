@@ -11,6 +11,8 @@ ClaferIDE
 		cleanOldFiles
 		checkingDependencies
 		urlUploading
+		handleControlRequest
+			scopeInteraction
     client
         jquery
         help_pages
@@ -21,8 +23,7 @@ ClaferIDE
 				handleError
 			claferModel		
 			claferTextEditor
-			control
-				scopeInteraction
+			control				
 			output
 		syntaxHighlighting
         icons
