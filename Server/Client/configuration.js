@@ -92,15 +92,15 @@ function getConfiguration()
 		            module.editor.getSession().setValue(responseObject.model);
 		        }
 
-		        module.host.print("Compiler> " + responseObject.message + "\n");
-		        module.host.print(responseObject.compiler_message + "\n");    
-
 		        if (responseObject.message == "Success")
 		        {
+			        module.host.print("Compiler> " + responseObject.message + "\n");
+			        module.host.print(responseObject.compiler_message + "\n");    
 		            module.host.findModule("mdControl").resetControls();
 		        }
 		        else
 		        {
+		        	module.host.print("Compiler> Error response:\n" + responseObject + "\n");
 		            module.host.findModule("mdControl").disableAll(); // if exited IG, then disable controls
 		        }		          
 
@@ -152,13 +152,29 @@ function getConfiguration()
 			{
 				module.host.print("ClaferIDE> Forcing the instance generator to close...\n");				
 			},
-			"onGlobalScopeSet": function (module)
+			"onStart": function (module)
 			{
-				module.host.print("ClaferIDE> Setting the global scope...\n");
+				return true;				
 			},
-			"onClaferScopeSet": function (module)
+			"onStop": function (module)
+			{
+				return true;				
+			},
+			"onDefaultScopeSet": function (module)
+			{
+				module.host.print("ClaferIDE> Setting the default scope...\n");
+			},
+			"onAllScopesIncreased": function (module)
+			{
+				module.host.print("ClaferIDE> Increasing all the scopes...\n");
+			},
+			"onIndividualScopeSet": function (module)
 			{
 		        module.host.print("ClaferIDE> Setting the individual scope...\n");
+		    },
+			"onIndividualScopeIncreased": function (module)
+			{
+		        module.host.print("ClaferIDE> Increasing the individual scope...\n");
 		    },
 			"onIntScopeSet": function (module)
 			{
